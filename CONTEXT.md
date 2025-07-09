@@ -12,6 +12,10 @@
 | **Post-Eject** | N/A | When ejecting, must configure mobile/web as if it was bare React Native, Post-Eject codebase has some Expo client overhead but we maintain access to their tooling |
 | **Testing/Tools** | Webpack and metro are default developing tools with hot reload but require setup | Automatic Hot Reloading and OTA testing if we decide on a testflight or app store testing phase without native modules |
 
+## Note on NIP 55 Signing for Android
+Expo can support this with https://github.com/chebizarro/Nostr-Signer-Expo-Module(or the more maintained fork: expo-nip55). This does require native modules but we don't have to fully eject yet. We can expose the Expo Dev client and build a custom development which still uses Expo config and tooling such as OTA updates. OTA updates are especially useful in the initial testing phase so we are not limited by app store approvals. This method slows down development minimally. Note that OTA updates can't update native code or assets or permissions. But common bugs, screen layouts, React Native code etc. can all be updated without an official app store update.
+
+
 ## Decision: EXPO → Eject → Bare React Native
 
 ### Why Expo First?
@@ -39,7 +43,7 @@ Native modules are unavoidable but we will work with Expo as long as possible to
 - Aided by tools like Platform.OS, file extensions (.native.tsx, .web.tsx), and react-navigation's web support
 
 **Build Tools:**
-- Continue using Webpack (for web) and Metro (for native) in parallel
+- Continue using Webpack (for web) and Metro (for native) in parallel. Webpack is the default for Expo. Other options like Vite can be setup but are semi-difficult and not supported by all dependencies. Metro itself is not an option for Web because it has limited dependency support.
 - Carefully maintain shared logic (navigation, state management, local storage) to reduce duplication
 
 ### Alternative Framework Notes
@@ -62,9 +66,17 @@ React Native Elements(@rneui) providing foundational components and styling that
 ### React Native Paper
 Another major framework is React Native Paper which is based on Google's material design. It is quicker to develop a high quality eye catching UI especially on Android. However the theming needs some editing for web views and it restricts the design somewhat. Since it is based on Google's material design, it can look out of place on an iOS app.
 
+## Animations
+
+Both options don't provide comprehensive animation support. That is typically handled by react-native-reanimated, react-native-animatable, react-native-gesture-handler. RNPaper does come with slide in/out and ripple animations initially which adds a degree of polish but may make future custom animations more difficult to integrate. Since RNPaper does not offer a comprehensive system I would rather have full control.
+
+For quicker and less boilerplate animations we can also use Moti. It is built on top of reanimated and works well with native/web. The performance is acceptable but if we add any complex or non-standard animations we will revert to react-native-reanimated.
+
 ## Decision: @rneui + Custom Components
 
 I propose using a combination of @rneui as well as custom react native components such as View, Text, ScrollView etc. Other options such as NativeBase either require more setup or impose a heavier design system which restricts design freedom. Additionally, custom components and most @rneui components are 1 and 2 in terms of multi-platform performance.
+
+
 
 **Implementation Strategy:** We'll be starting with React Native Elements (@rneui) and adding custom-built components using shared primitives (View, ScrollView, Text, etc.). We maintain speed early in development while enabling precise control over a unified design. This also feeds into our use of Expo early in the development process.
 
@@ -72,9 +84,9 @@ I propose using a combination of @rneui as well as custom react native component
 
 ## Welshman Store Adaptation to React Hooks
 
-We can adapt welshman's stores to react hooks manually. Below is an implementation/tests that has been working as a general adaptor as far as I have tested it. 
+We can adapt welshman's stores to react hooks manually. Below is an implementation/tests that has been working as a general. 
 
-**Tests include:**
+**Tests included:**
 - Basic set(), get(), update() operations
 - Instantiating an eventStore via deriveEvents which tests subscription
 - Writable tests with a writableEventStore
@@ -82,43 +94,15 @@ We can adapt welshman's stores to react hooks manually. Below is an implementati
 ### Example Usage
 
 ```javascript
-const eventStore = deriveEvents(realRepository, {
- filters: [{ kinds: [1] }], // text notes
- throttle: 1000,
-})
+import { useStore } from './useWelshmanStore';
 
-const { state: events, set, update } = useWelshmanStore<TrustedEvent[]>(eventStore)
+const [newTestEvents] = useStore<TrustedEvent[]>(testEventsStore || { subscribe: () => () => {} });
+ // Debug new useStore
+ useEffect(() => {
+   console.log('[NEW_USE_STORE] newTestEvents changed:', newTestEvents);
+ }, [newTestEvents]);
 ```
 
-### Writable Store Implementation
-
-```javascript
-function createWritableEventStore() {
- let events: TrustedEvent[] = []
- let listeners: Array<(val: TrustedEvent[]) => void> = []
-  return {
-   get: () => events,
-   set: (newEvents: TrustedEvent[]) => {
-     events = newEvents
-     listeners.forEach(cb => cb(events))
-   },
-   update: (fn: (draft: TrustedEvent[]) => void) => {
-     fn(events)
-     listeners.forEach(cb => cb(events))
-   },
-   subscribe: (cb: (val: TrustedEvent[]) => void) => {
-     listeners.push(cb)
-     cb(events)
-     return () => {
-       listeners = listeners.filter(l => l !== cb)
-     }
-   }
- }
-}
-
-const writableStore = React.useMemo(() => createWritableEventStore(), [])
-const { state: writableEvents, set: setWritable, update: updateWritable } = useWelshmanStore<TrustedEvent[]>(writableStore)
-```
 
 ## Welshman General Implementation
 
@@ -128,97 +112,31 @@ const { state: writableEvents, set: setWritable, update: updateWritable } = useW
 - Optional throttling, persistence, and initial value support
 
 ```javascript
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
-import '../shim/localStorage' //fallback if global shiv fails
+import { useState, useEffect } from 'react'
+
 
 /**
-* Generic hook to adapt any Welshman store to React state.
-* Works with any store that has subscribe() and get() methods.
-*
-* @param store - A Welshman store with subscribe and get methods
-* @param options - Optional configuration
-* @returns { state, set, update } - React state and store methods
+* @param store - A store with subscribe and optional set methods
+* @returns [value, setValue] - Current value and setter function
 */
-export function useWelshmanStore<T>(
+export function useStore<T>(
  store: {
    subscribe: (callback: (value: T) => void) => () => void
-   get: () => T
    set?: (value: T) => void
-   update?: any
- },
- options?: {
-   throttleMs?: number
-   persistKey?: string
-   initialValue?: T
  }
-) {
- const { throttleMs = 0, persistKey, initialValue } = options || {}
+): [T | undefined, ((value: T) => void) | undefined] {
+ const [value, setValue] = useState<T | undefined>(undefined)
 
- // React state synced to store value
- const [state, setState] = useState<T>(() => {
-   if (persistKey) {
-     try {
-       const lsVal = localStorage?.getItem(persistKey) //(global.localStorage || window.localStorage)?.getItem(persistKey) old method with shiv, fallback?
-       if (lsVal) return JSON.parse(lsVal) as T
-     } catch {}
-   }
-   return store.get() || initialValue as T
- })
 
- const throttlingRef = useRef<number | null>(null)
-
- //keep a stable reference to the store's subscribe method
- const subscribeRef = useRef(store.subscribe)
-
- //keep latest subscribe reference
  useEffect(() => {
-   subscribeRef.current = store.subscribe
+   const unsubscribe = store.subscribe(setValue)
+   return unsubscribe
  }, [store.subscribe])
 
- //Subscribes to the Welshman store and updates React state on change
- //cleans up on unmount
- useEffect(() => {
-   const unsubscribe = subscribeRef.current((value: T) => {
-     if (throttleMs > 0) {
-       if (throttlingRef.current) return
-       throttlingRef.current = setTimeout(() => {
-         setState(value)
-         throttlingRef.current = null
-       }, throttleMs)
-     } else {
-       setState(value)
-     }
-   })
 
-   return () => {
-     unsubscribe()
-     if (throttlingRef.current) {
-       clearTimeout(throttlingRef.current)
-     }
-   }
- }, [throttleMs])
-
- // Persist to localStorage
- useEffect(() => {
-   if (persistKey) {
-     try {
-       localStorage?.setItem(persistKey, JSON.stringify(state)) //(global.localStorage || window.localStorage)?.setItem(persistKey, JSON.stringify(state)) //old shiv method
-     } catch {} //silent ignore!
-   }
- }, [state, persistKey])
-
- const set = useCallback((val: T) => {
-   if (store.set) store.set(val)
-   else console.warn('Store.set not implemented') //not necessarily defined for read only stores
- }, [store.set])
-
- const update = useCallback((fn: (draft: T) => void) => {
-   if (store.update) store.update(fn)
-   else console.warn('Store.update not implemented')
- }, [store.update])
-
- return { state, set, update }
+ return [value, store.set]
 }
+
 ```
 
 ## Cross-Platform Storage Challenges
@@ -233,18 +151,22 @@ export function useWelshmanStore<T>(
 - **Why it failed:** Metro bundler follows a dependency graph which does not include the shiv
 - Trying a global polyfill also failed
 
-**Current Solution:**
+**Second Approach:**
 - Patching the Welshman/lib/dist/Tools.js file to create a custom storage method
 - Changes localStorage depending on device type
 - Includes a synchronous wrapper around AsyncStorage because Welshman tooling expects synchronous properties
-- **Status:** Working in minimal testing
+- **Status: Rejected** Working in minimal testing but was not platform agnosticm, relied on editing direct dependencies
 
-**Production Requirements:**
-- Need to implement: clear(), key(index) and length
-- Must actually retrieve data stored from a previous session
-- Potential race conditions may exist
+**Final Approach:**
+- Remove Dependency on localStorage
+- Update synced store to take a configuration object with key, async get, and async set options
+- Replace synced with a plain writable in welshman/app
+- Is now platform agnostic, and the platform is responsible for dependency injection
 
-**Alternative Options:**
+**Changes to Welshman**
+- These will be handled via https://github.com/coracle-social/welshman/issues/28 for localStorage
+
+**Alternative Storage Types:**
 - **react-native-mmkv:** Synchronous and slightly faster but requires ejection
 - **indexedDB:** More involved and in-depth change, but generally following the same format as the localStorage patch to Welshman
 
@@ -262,48 +184,6 @@ export function useWelshmanStore<T>(
 
 **Decision:** We can store this data directly, no need to edit Welshman.
 
-### Cross-Platform Storage Implementation
-
-```javascript
-// Cross-platform storage implementation
-let storage;
-if (typeof localStorage !== 'undefined') {
- storage = localStorage;
-} else if (typeof global !== 'undefined') {
- // Create a synchronous wrapper around AsyncStorage for mobile
- const asyncStorage = global.AsyncStorage || require('@react-native-async-storage/async-storage').default;
- const cache = new Map();
-  storage = {
-   getItem: (key) => {
-     if (cache.has(key)) return cache.get(key);
-     // For now, return null and let the app handle async loading
-     return null;
-   },
-   setItem: (key, value) => {
-     cache.set(key, value);
-     asyncStorage.setItem(key, value).catch(() => {});
-   },
-   removeItem: (key) => {
-     cache.delete(key);
-     asyncStorage.removeItem(key).catch(() => {});
-   }
- };
-}
-
-export const getJson = (k) => parseJson((storage ? storage.getItem(k) : null) || "");
-/**
-* Stringifies and stores value in localStorage
-* @param k - Storage key
-* @param v - Value to store
-*/
-export const setJson = (k, v) => { if (storage) storage.setItem(k, JSON.stringify(v)); };
-/**
-* Fetches JSON from URL with options
-* @param url - URL to fetch from
-* @param opts - Fetch options
-* @returns Promise of parsed JSON response
-*/
-```
 
 
 
