@@ -13,17 +13,11 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
 
-        {/* Content Security Policy
         <meta httpEquiv="Content-Security-Policy" content="
-          default-src 'self';
-          connect-src 'self' wss: https:;
-          media-src 'self' https:;
-          object-src 'none';
-          base-uri 'self';
           form-action 'self';
           frame-ancestors 'none';
           upgrade-insecure-requests;
-        " /> */}
+        " />
 
 
         <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
