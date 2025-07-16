@@ -19,10 +19,10 @@ export default function Slider({
   const { isDark } = useTheme();
   const colorScheme = isDark ? 'dark' : 'light';
   const colors = Colors[colorScheme];
-  
+
   const screenWidth = Dimensions.get('window').width;
   const isMobile = screenWidth < 768;
-  
+
   const imageSize = isMobile ? 60 : 50;
 
   return (
@@ -44,7 +44,7 @@ export default function Slider({
         ]}
         resizeMode="cover"
       />
-      
+
       <View style={styles.textContainer}>
         <Text style={[
           styles.title,
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 16,
     alignItems: 'center',
-    borderRadius: 10, 
+    borderRadius: 10,
     borderWidth: 1,
     marginHorizontal: 16,
     marginVertical: 8,
@@ -90,4 +90,4 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     opacity: 0.8,
   },
-}); 
+});

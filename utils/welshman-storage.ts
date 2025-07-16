@@ -1,31 +1,30 @@
-import { synced, withGetter } from '@welshman/store';
+import { sync } from '@welshman/store';
+import { pubkey, sessions } from '@welshman/app';
 import { platformStorageProvider } from '@/utils/storage-provider';
 
-// Create synced stores with platform storage provider
-export const persistentPubkey = withGetter(synced({
-  key: "pubkey",
-  storage: platformStorageProvider,
-  defaultValue: undefined as string | undefined,
-}));
-
-export const persistentSessions = withGetter(synced({
-  key: "sessions",
-  storage: platformStorageProvider,
-  defaultValue: {} as Record<string, any>,
-}));
-
-// Initialize storage by loading initial values
+// Sync existing Welshman stores with platform storage
 export const initializeWelshmanStorage = async () => {
   console.log("Initializing Welshman storage with platform provider");
-  
+
   try {
-    // The synced stores will automatically load from storage on initialization
-    // and sync changes back to storage via subscriptions
-    console.log("Welshman storage initialized successfully");
+    // Sync the main Welshman stores with persistent storage
+    sync({
+      key: "pubkey",
+      store: pubkey,
+      storage: platformStorageProvider,
+    });
+
+    sync({
+      key: "sessions",
+      store: sessions,
+      storage: platformStorageProvider,
+    });
+
+    console.log("Welshman storage synced successfully");
   } catch (error) {
     console.error("Failed to initialize Welshman storage:", error);
   }
-}; 
+};
 /*
 import { synced, localStorageProvider } from '@welshman/store'
 const store = synced({ key: "data", storage: localStorageProvider, defaultValue: {} }), const rnProvider = { get: async (k) => AsyncStorage.getItem(k), set: async (k, v) => AsyncStorage.setItem(k, v) }

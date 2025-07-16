@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 
-import NostrTest from '@/tests/integration/NostrTest';
+// import NostrTest from '@/tests/integration/NostrTest';
 import { Text, View } from '@/components/theme/Themed';
 import { ScrollView } from 'react-native';
 
@@ -17,7 +17,7 @@ export default function TabOneScreen() {
 }
 
 const styles = StyleSheet.create({
-  scrollContainer: { 
+  scrollContainer: {
     flex: 1, //for mobile scroll extend
   },
   scrollContent: {

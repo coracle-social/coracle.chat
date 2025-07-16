@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     marginVertical: 'auto',
     gap: 4,
   },
-  
+
   copyButtonText: {
     fontSize: 12,
     fontWeight: '500',

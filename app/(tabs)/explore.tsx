@@ -8,8 +8,8 @@ export default function ExploreScreen() {
       <View>
         <Text>11</Text>
       </View>
-      
-       
+
+
   );
 }
 

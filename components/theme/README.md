@@ -1,6 +1,6 @@
 # Theme System Documentation
 
-This directory contains the theme system for Coracle 
+This directory contains the theme system for Coracle
 chat
 
 ## File Structure
@@ -15,7 +15,7 @@ components/theme/
 
 ## How the Theme Files Interact
 
-### 1. ThemeContext.tsx 
+### 1. ThemeContext.tsx
 
 **Purpose**: Manages theme state, user preferences, and provides the theme context to the entire app.
 
@@ -50,7 +50,7 @@ function MyComponent() {
 
 **Exports**:
 - `Text`: Themed text component
-- `View`: Themed view component  
+- `View`: Themed view component
 - `useThemeColor()`: Hook for getting theme colors
 
 **Usage**:
@@ -58,8 +58,8 @@ function MyComponent() {
 import { Text, View, useThemeColor } from '@/components/theme/Themed';
 
 function MyComponent() {
-  const backgroundColor = useThemeColor({}, 'background');
-  
+  const backgroundColor = useThemeColor('background');
+
   return (
     <View style={{ backgroundColor }}>
       <Text>This text automatically adapts to theme</Text>
@@ -117,7 +117,7 @@ export default {
     // ... other colors
   },
   dark: {
-    text: '#fff', 
+    text: '#fff',
     background: '#000',
     tint: '#fff',
     // ... other colors
@@ -133,7 +133,7 @@ import { useTheme } from '@/components/theme/ThemeContext';
 
 function Header() {
   const { isDark, toggleTheme } = useTheme();
-  
+
   return (
     <View style={{ backgroundColor: isDark ? '#000' : '#fff' }}>
       <Button onPress={toggleTheme} title="Toggle Theme" />
@@ -163,7 +163,7 @@ import { Text } from '@/components/theme/Themed';
 
 function CustomText() {
   return (
-    <Text 
+    <Text
       lightColor="#ff0000"  // Red in light mode
       darkColor="#00ff00"   // Green in dark mode
     >

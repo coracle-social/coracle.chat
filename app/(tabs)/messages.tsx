@@ -31,7 +31,7 @@ export default function MessagesScreen() {
 
   const content = (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
@@ -99,3 +99,5 @@ const styles = StyleSheet.create({
     padding: 10,
   },
 });
+
+// when you create a message it gets sent to the repository automatically, updating the message list in the process.

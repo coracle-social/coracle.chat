@@ -14,4 +14,4 @@ export const NostrSignerPlugin = {
 
 export const AppInfo = {};
 
-export default NostrSignerPlugin; 
+export default NostrSignerPlugin;

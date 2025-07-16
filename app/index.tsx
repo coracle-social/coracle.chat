@@ -13,8 +13,8 @@ export default function Index() {
   const tintColor = colors?.tint || '#007AFF';
 
   return (
-    <View style={{ 
-      flex: 1, 
+    <View style={{
+      flex: 1,
       backgroundColor: backgroundColor,
       justifyContent: 'center',
       alignItems: 'center'
@@ -23,4 +23,4 @@ export default function Index() {
       <Redirect href="/(tabs)/dashboard" />
     </View>
   );
-} 
+}

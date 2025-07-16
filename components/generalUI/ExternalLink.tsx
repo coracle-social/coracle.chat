@@ -8,6 +8,7 @@ export function ExternalLink(
 ) {
   return (
     <Link
+      rel="noreferrer noopener nofollow"
       target="_blank"
       {...props}
       // @ts-expect-error: External URLs are not typed.

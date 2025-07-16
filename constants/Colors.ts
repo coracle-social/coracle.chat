@@ -22,6 +22,22 @@ export default {
     divider: '#dee2e6',
     disabled: '#6c757d',
     placeholder: '#adb5bd',
+    // Tab icons
+    tabIcons: {
+      dashboard: 'Home Smile',
+      explore: 'compass',
+      spaces: 'Settings Minimalistic',
+      messages: 'Letter',
+      search: 'Magnifier',
+      settings: 'Settings',
+    },
+    // Additional UI colors for components
+    inactiveIcon: '#666',
+    sidebarBorder: '#e0e0e0',
+    activeTabBackground: '#e0e0e0',
+    inactiveTabText: '#666',
+    activeTabText: '#007AFF',
+    buttonBorder: '#e0e0e0',
   },
   dark: {
     text: '#fff',
@@ -43,5 +59,21 @@ export default {
     divider: '#333333',
     disabled: '#6c757d',
     placeholder: '#6c757d',
+    // Tab icons
+    tabIcons: {
+      dashboard: 'Home Smile',
+      explore: 'compass',
+      spaces: 'Settings Minimalistic',
+      messages: 'Letter',
+      search: 'Magnifier',
+      settings: 'Settings',
+    },
+    // Additional UI colors for components
+    inactiveIcon: '#999',
+    sidebarBorder: '#404040',
+    activeTabBackground: '#404040',
+    inactiveTabText: '#999',
+    activeTabText: '#4dabf7',
+    buttonBorder: '#404040',
   },
 };

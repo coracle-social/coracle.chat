@@ -72,7 +72,7 @@ export default function SlideOutOptions({
     }
   };
 
-  const handleButtonPress = (button: any) => {
+  const handleButtonPress = (button: { title: string; onPress: () => void; icon?: string; iconType?: string; color?: string }) => {
     button.onPress();
     toggleSlide();
   };

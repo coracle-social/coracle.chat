@@ -6,12 +6,12 @@ const webStorageProvider = {
       if (typeof key !== 'string') {
         console.warn('[STORAGE] Web provider received non-string key:', key, 'Type:', typeof key);
       }
-      
+
       // Check if localStorage is available and working
       if (typeof window === 'undefined' || typeof localStorage === 'undefined' || !localStorage) {
         return undefined
       }
-      
+
       try {
         localStorage.setItem('test', 'test')
         localStorage.removeItem('test')
@@ -19,7 +19,7 @@ const webStorageProvider = {
         console.warn('localStorage not available:', testError)
         return undefined
       }
-      
+
       const value = localStorage.getItem(key)
       return value ? JSON.parse(value) : undefined
     } catch (error) {
@@ -27,17 +27,17 @@ const webStorageProvider = {
       return undefined
     }
   },
-  set: async (key: string, value: any) => {
+  set: async (key: string, value: unknown) => {
     try {
       if (typeof key !== 'string') {
         console.warn('[STORAGE] Web provider received non-string key:', key, 'Type:', typeof key);
       }
-      
+
       // Check if localStorage is available and working
       if (typeof window === 'undefined' || typeof localStorage === 'undefined' || !localStorage) {
         return
       }
-      
+
       try {
         localStorage.setItem('test', 'test')
         localStorage.removeItem('test')
@@ -45,7 +45,7 @@ const webStorageProvider = {
         console.warn('localStorage not available:', testError)
         return
       }
-      
+
       if (value === undefined || value === null) {
         localStorage.removeItem(key)
         return
@@ -61,15 +61,15 @@ const mobileStorageProvider = {
   get: async (key: string) => {
     try {
       const AsyncStorage = require('@react-native-async-storage/async-storage').default
-      
+
       // Debug: Log if key is not a string
       if (typeof key !== 'string') {
         console.warn('[STORAGE] Mobile provider received non-string key:', key, 'Type:', typeof key);
       }
-      
+
       // Ensure key is a string
       const stringKey = typeof key === 'string' ? key : JSON.stringify(key)
-      
+
       const value = await AsyncStorage.getItem(stringKey)
       return value ? JSON.parse(value) : undefined
     } catch (error) {
@@ -77,18 +77,18 @@ const mobileStorageProvider = {
       return undefined
     }
   },
-  set: async (key: string, value: any) => {
+  set: async (key: string, value: unknown) => {
     try {
       const AsyncStorage = require('@react-native-async-storage/async-storage').default
-      
+
       // Debug: Log if key is not a string
       if (typeof key !== 'string') {
         console.warn('[STORAGE] Mobile provider received non-string key:', key, 'Type:', typeof key);
       }
-      
+
       // Ensure key is a string
       const stringKey = typeof key === 'string' ? key : JSON.stringify(key)
-      
+
       // Don't store undefined/null values - use removeItem instead
       if (value === undefined || value === null) {
         await AsyncStorage.removeItem(stringKey)
@@ -102,8 +102,8 @@ const mobileStorageProvider = {
 }
 
 // Choose provider based on platform
-export const platformStorageProvider = Platform.OS === 'web' 
-  ? webStorageProvider 
+export const platformStorageProvider = Platform.OS === 'web'
+  ? webStorageProvider
   : mobileStorageProvider
 
 

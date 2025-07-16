@@ -16,14 +16,19 @@ export interface MessageEditorRef {
 }
 
 const MessageEditor = forwardRef<MessageEditorRef, MessageEditorProps>(({ onSendMessage }, ref) => {
-  const richText = useRef<any>(null);
-  
-  const backgroundColor = useThemeColor({}, 'surface');
-  const borderColor = useThemeColor({}, 'border');
-  const textColor = useThemeColor({}, 'text');
-  const primaryColor = useThemeColor({}, 'primary');
-  const toolbarBackground = useThemeColor({}, 'surfaceVariant');
-  const placeholderColor = useThemeColor({}, 'placeholder');
+  const richText = useRef<{
+    blurContentEditor?: () => void;
+    getContentHtml?: () => Promise<string>;
+    setContentHTML?: (html: string) => void;
+  }>(null);
+
+  // Use the theme system properly
+  const backgroundColor = useThemeColor('surface');
+  const borderColor = useThemeColor('border');
+  const textColor = useThemeColor('text');
+  const placeholderColor = useThemeColor('placeholder');
+  const primaryColor = useThemeColor('primary');
+  const toolbarBackground = useThemeColor('surfaceVariant');
 
   useImperativeHandle(ref, () => ({
     dismissKeyboard: () => {
@@ -34,10 +39,10 @@ const MessageEditor = forwardRef<MessageEditorRef, MessageEditorProps>(({ onSend
   }));
 
   const handleSendMessage = () => {
-    richText.current?.getContentHtml().then((content: string) => {
+    richText.current?.getContentHtml?.().then((content: string) => {
       if (content && content.trim() !== '<p><br></p>') {
         onSendMessage(content);
-        richText.current?.setContentHTML('');
+        richText.current?.setContentHTML?.('');
       }
     });
   };
@@ -49,7 +54,7 @@ const MessageEditor = forwardRef<MessageEditorRef, MessageEditorProps>(({ onSend
       const cleanText = text.replace(/\n/g, '');
       if (cleanText.trim()) {
         onSendMessage(cleanText);
-        richText.current?.setContentHTML('');
+        richText.current?.setContentHTML?.('');
       }
     }
   };
@@ -61,7 +66,7 @@ const MessageEditor = forwardRef<MessageEditorRef, MessageEditorProps>(({ onSend
         style={[styles.editor, { backgroundColor, borderColor }]}
         placeholder="Type your message..."
         onChange={handleEditorChange}
-        maxHeight={200} 
+        maxHeight={200}
         scrollEnabled={true}
         editorStyle={{
           backgroundColor: backgroundColor,
@@ -92,7 +97,7 @@ export default MessageEditor;
 const styles = StyleSheet.create({
   editor: {
     minHeight: 100,
-    maxHeight: 200, 
+    maxHeight: 200,
     borderWidth: 1,
     borderRadius: 8,
     padding: 10,
@@ -112,4 +117,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-}); 
+});

@@ -4,74 +4,58 @@ import { Button } from '@rneui/themed';
 import { useTheme } from '@/components/theme/ThemeContext';
 import Colors from '@/constants/Colors';
 import ProfilePicture from './ProfilePicture';
-import { changeName, changeDescription } from '@/utils/dataHandling';
-import DisplayCopyString from './DisplayCopyString';
+import { updateProfile, changePicture } from '@/utils/dataHandling';
+import DisplayCopyString from '@/components/generalUI/DisplayCopyString';
+import { isMobile as isMobileBreakpoint } from '@/constants/Breakpoints';
+import { useStore } from '@/stores/useWelshmanStore2';
+import { pubkey, userProfile } from '@welshman/app';
+import { displayProfile, displayPubkey } from '@welshman/util';
 
-interface ProfileCardProps {
-  avatarUrl: string;
-  buttonTitle: string;
-  aboutText: string;
-  name?: string;
-  pubkey?: string;
-  onButtonPress: () => void;
-  onAboutChange?: (text: string) => void;
-  slideOutButtons?: Array<{
-    title: string;
-    onPress: () => void;
-    icon?: string;
-    iconType?: string;
-    color?: string;
-  }>;
-}
-
-export default function ProfileCard({
-  avatarUrl,
-  buttonTitle, //for future use
-  aboutText: initialAboutText,
-  name,
-  pubkey,
-  onButtonPress,
-  onAboutChange,
-}: ProfileCardProps) {
+export default function ProfileCard() {
   const { isDark } = useTheme();
   const colorScheme = isDark ? 'dark' : 'light';
   const colors = Colors[colorScheme];
-  
-  const [aboutText, setAboutText] = useState(initialAboutText);
+
+  const [currentPubkey] = useStore(pubkey);
+  const [profile] = useStore(userProfile);
+
+  const [aboutText, setAboutText] = useState(profile?.about || '');
   const [editingName, setEditingName] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
-  const [nameText, setNameText] = useState(name || '');
+  const [nameText, setNameText] = useState(profile?.name || '');
 
   useEffect(() => {
-    setAboutText(initialAboutText);
-  }, [initialAboutText]);
-
-  useEffect(() => {
-    if (name) setNameText(name);
-  }, [name]);
+    setAboutText(profile?.about || '');
+    setNameText(profile?.name || '');
+  }, [profile]);
 
   const screenWidth = Dimensions.get('window').width;
-  const isMobile = screenWidth < 768;
+  const isMobile = isMobileBreakpoint(screenWidth);
   const isWeb = Platform.OS === 'web';
-  
+
   const avatarSize = isMobile ? 120 : 90;
   const verticalPadding = isMobile ? 28 : 20;
 
-  // Responsive button sizes
   const saveButtonFontSize = isMobile ? 12 : 14;
   const saveButtonPaddingVertical = isMobile ? 6 : 8;
   const saveButtonPaddingHorizontal = isMobile ? 16 : 20;
 
   const handleAboutChange = (text: string) => {
     setAboutText(text);
-    if (onAboutChange) {
-      onAboutChange(text);
-    }
   };
 
   const handleImageChange = (newImageUrl: string) => {
     console.log('Profile image changed to:', newImageUrl);
-    //for future use
+    // UI will update automatically through the store
+  };
+
+  const handleImageSave = async (newImageUrl: string) => {
+    try {
+      await changePicture(newImageUrl);
+    } catch (error) {
+      console.error('Failed to save profile picture:', error);
+      throw error;
+    }
   };
 
   const dismissKeyboard = () => {
@@ -82,8 +66,7 @@ export default function ProfileCard({
 
   const handleSaveName = async () => {
     try {
-      // Pass the full profile data to preserve all existing fields
-      await changeName(nameText);
+      await updateProfile({ name: nameText.trim() });
       setEditingName(false);
     } catch (error) {
       console.error('Failed to save name:', error);
@@ -92,32 +75,34 @@ export default function ProfileCard({
 
   const handleSaveDescription = async () => {
     try {
-      // Pass the full profile data to preserve all existing fields
-      await changeDescription(aboutText);
+      await updateProfile({ about: aboutText.trim() });
       setEditingDescription(false);
     } catch (error) {
       console.error('Failed to save description:', error);
     }
   };
-  
+
+  // Don't render if no user is logged in
+  if (!currentPubkey) {
+    return null;
+  }
+
   const cardContent = (
     <View style={[
-      styles.container, 
-      { 
+      styles.container,
+      {
         backgroundColor: colors.surface,
         paddingVertical: verticalPadding
       }
     ]}>
       <View style={styles.leftSide}>
-        {pubkey && (
-          <View style={styles.pubkeyContainer}>
-            <DisplayCopyString
-              value={pubkey}
-              onCopy={(value) => console.log('Public key copied:', value)}
-            />
-          </View>
-        )}
-        
+        <View style={styles.pubkeyContainer}>
+          <DisplayCopyString
+            value={currentPubkey}
+            onCopy={(value) => console.log('Public key copied:', value)}
+          />
+        </View>
+
         <View style={styles.aboutContainer}>
           <TextInput
             style={[
@@ -134,16 +119,15 @@ export default function ProfileCard({
             value={aboutText}
             onChangeText={handleAboutChange}
             textAlignVertical="top"
-            editable={!!onAboutChange}
             onFocus={() => setEditingDescription(true)}
           />
-          {editingDescription && onAboutChange && (
+          {editingDescription && (
             <Button
               title="Save"
               onPress={handleSaveDescription}
               buttonStyle={[
                 styles.saveDescriptionButton,
-                { 
+                {
                   backgroundColor: colors.primary,
                   paddingVertical: saveButtonPaddingVertical,
                   paddingHorizontal: saveButtonPaddingHorizontal,
@@ -158,10 +142,11 @@ export default function ProfileCard({
       </View>
 
       <View style={styles.rightSide}>
-        <ProfilePicture 
-          avatarUrl={avatarUrl} 
-          size={avatarSize} 
+        <ProfilePicture
+          avatarUrl={profile?.picture || "https://via.placeholder.com/90"}
+          size={avatarSize}
           onImageChange={handleImageChange}
+          onImageSave={handleImageSave}
         />
         {editingName ? (
           <>
@@ -184,7 +169,7 @@ export default function ProfileCard({
               onPress={handleSaveName}
               buttonStyle={[
                 styles.saveButton,
-                { 
+                {
                   backgroundColor: colors.primary,
                   paddingVertical: saveButtonPaddingVertical,
                   paddingHorizontal: saveButtonPaddingHorizontal,
@@ -201,7 +186,7 @@ export default function ProfileCard({
             style={[styles.nameText, { color: colors.text }]}
             onPress={() => setEditingName(true)}
           >
-            {nameText || 'Your Name'}
+            {displayProfile(profile, displayPubkey(currentPubkey))}
           </Text>
         )}
       </View>
@@ -253,7 +238,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 100,
     maxHeight: 140,
-    maxWidth: 600,          
+    maxWidth: 600,
     borderWidth: 1,
     borderRadius: 12,
     padding: 16,
@@ -261,7 +246,7 @@ const styles = StyleSheet.create({
   },
   rightSide: {
     alignItems: 'center',
-    
+
     maxWidth: 300,
   },
   nameText: {
@@ -289,7 +274,7 @@ const styles = StyleSheet.create({
   aboutContainer: {
     position: 'relative',
     flex: 1,
-    maxWidth: 600,           
+    maxWidth: 600,
   },
   saveDescriptionButton: {
     borderRadius: 4,
@@ -300,7 +285,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 8,
     right: 8,
-    maxWidth: 100,          
+    maxWidth: 100,
     zIndex: 2,
   },
   pubkeyContainer: {

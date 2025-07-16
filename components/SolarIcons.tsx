@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleProp, ViewStyle } from 'react-native';
 
 interface SolarIconProps {
-  name: string; 
+  name: string;
   size?: number;
   color?: string;
   fill?: string;
@@ -40,7 +40,7 @@ export default function SolarIcon({
 }
 
 // Icon importer with explicit imports
-function getIconByName(name: string): React.ComponentType<any> | null {
+function getIconByName(name: string): React.ComponentType<Record<string, unknown>> | null {
   switch (name) {
     case 'Home Smile':
       return require('../assets/icons/solar/Home Smile.svg').default;
@@ -66,4 +66,4 @@ function getIconByName(name: string): React.ComponentType<any> | null {
 
 
 //NOTE CURRENT SVGs don't support fill and stroke, this will change in the future
-//can also use bolded versions as a simple fix 
+//can also use bolded versions as a simple fix

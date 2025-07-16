@@ -16,15 +16,14 @@ export interface MessageEditorRef {
 }
 
 const MessageEditor = forwardRef<MessageEditorRef, MessageEditorProps>(({ onSendMessage }, ref) => {
-  const { isDark } = useTheme();
-  
+
   // Use the theme system properly
-  const backgroundColor = useThemeColor({}, 'surface');
-  const borderColor = useThemeColor({}, 'border');
-  const textColor = useThemeColor({}, 'text');
-  const placeholderColor = useThemeColor({}, 'placeholder');
-  const primaryColor = useThemeColor({}, 'primary');
-  
+  const backgroundColor = useThemeColor('surface');
+  const borderColor = useThemeColor('border');
+  const textColor = useThemeColor('text');
+  const placeholderColor = useThemeColor('placeholder');
+  const primaryColor = useThemeColor('primary');
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -79,8 +78,8 @@ const MessageEditor = forwardRef<MessageEditorRef, MessageEditorProps>(({ onSend
   return (
     <View style={styles.webInputContainer}>
       <View style={[styles.editorWrapper, { backgroundColor, borderColor }]}>
-        <EditorContent 
-          editor={editor} 
+        <EditorContent
+          editor={editor}
           className="tiptap-editor"
           onKeyDown={handleKeyPress}
         />
@@ -117,4 +116,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-}); 
+});

@@ -1,6 +1,8 @@
 import * as ImagePicker from 'expo-image-picker';
 import { Platform, Alert } from 'react-native';
 
+//!! backedn upload for imaage
+
 export interface ImageUploadResult {
   uri: string;
   width: number;
@@ -139,11 +141,11 @@ export const convertImageToDataUrl = async (uri: string): Promise<string> => {
         reject(new Error('Could not get canvas context'));
         return;
       }
-      
+
       canvas.width = img.width;
       canvas.height = img.height;
       ctx.drawImage(img, 0, 0);
-      
+
       try {
         const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
         resolve(dataUrl);
@@ -211,4 +213,4 @@ export const uploadImageToStorage = async (imageResult: ImageUploadResult): Prom
     // On mobile, use the local URI for Nostr storage
     return imageResult.uri;
   }
-}; 
+};

@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Dimensions, ViewProps} from 'react-native';
+import { View, Dimensions, ViewProps, LayoutChangeEvent} from 'react-native';
 
 const {width: screen_width, height: screen_height} = Dimensions.get('window');
 
-interface OverFlowReaderProps extends ViewProps {
+interface OverflowReaderProps extends ViewProps {
     children: React.ReactNode;
 }
 
@@ -11,10 +11,10 @@ const isOverflowing = (x: number, y: number, width: number, height: number) => {
     return x < 0 || y < 0 || x + width > screen_width || y + height > screen_height;
 }
 
-export const overFlowReader: React.FC<OverFlowReaderProps> = ({children, ...props}) => {
-    const onLayout = (event: any) => {
+export const OverflowReader: React.FC<OverflowReaderProps> = ({children, ...props}) => {
+    const onLayout = (event: LayoutChangeEvent) => {
         const {width, height, x, y} = event.nativeEvent.layout;
-        
+
         if (__DEV__) {
             if (isOverflowing(x, y, width, height)) {
                 console.log('OVERFLOW DETECTED');

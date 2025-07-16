@@ -1,45 +1,27 @@
 import { StyleSheet, ScrollView, Platform, TouchableOpacity } from 'react-native';
-import { useState, useEffect } from 'react';
 import { Text, View } from '@/components/theme/Themed';
 import { Button } from '@rneui/themed';
 import { Link } from 'expo-router';
-import ProfileCard from '@/components/profile/profileCard';
+import ProfileCard from '@/components/profile/ProfileCard';
 import Slider from '@/components/generalUI/Slider';
 import ExpandableSlider from '@/components/profile/ExpandableSlider';
 import SlideOutOptions from '@/components/generalUI/SlideOutOptions';
 import { useTheme } from '@/components/theme/ThemeContext';
 import Colors from '@/constants/Colors';
 import Feather from '@expo/vector-icons/Feather';
-import { pubkey, deriveProfile } from '@welshman/app';
+import { pubkey } from '@welshman/app';
 import { useStore } from '@/stores/useWelshmanStore2';
-
-interface Profile {
-  name?: string;
-  display_name?: string;
-  about?: string;
-  picture?: string;
-}
+import { spacing } from '@/constants/Spacing';
 
 export default function SettingsScreen() {
   const [currentPubkey] = useStore(pubkey);
-  const [profileStore, setProfileStore] = useState<any>(null);
-  const [loadedProfile] = useStore<Profile>(profileStore || { subscribe: () => () => {} });
   const { isDark, toggleTheme } = useTheme();
   const colorScheme = isDark ? 'dark' : 'light';
   const colors = Colors[colorScheme];
 
-  //debugging only
-  useEffect(() => {
-    console.log('Loaded profile changed:', loadedProfile);
-  }, [loadedProfile]);
-
   const handleButtonPress = () => {
     console.log('Profile button pressed');
-    //This will ventually view profile as a foreign user
-  };
-
-  const handleAboutChange = (text: string) => {
-    //If needed for future
+    //This will eventually view profile as a foreign user
   };
 
   const handleSliderPress = () => {
@@ -47,31 +29,10 @@ export default function SettingsScreen() {
     //In case we need loading logic
   };
 
-  const loadUserProfile = (pubkey: string) => {
-    console.log('Loading profile for pubkey:', pubkey);
-    try {
-      const store = deriveProfile(pubkey);
-      console.log('Profile store created:', store);
-      setProfileStore(store);
-    } catch (error) {
-      console.error('Error creating profile store:', error);
-    }
-  };
-
   const handleLogout = () => {
     pubkey.set(undefined);
-    setProfileStore(null);
+    // The userProfile store will automatically update when pubkey changes
   };
-
-  // Set up profile store when pubkey changes
-  useEffect(() => {
-    if (currentPubkey) {
-      console.log('Current pubkey changed, loading profile:', currentPubkey);
-      loadUserProfile(currentPubkey);
-    } else {
-      setProfileStore(null);
-    }
-  }, [currentPubkey]);
 
   const accountSliders = [
     {
@@ -155,22 +116,14 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
         )}
-        
+
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={styles.profileSection}>
             <Text style={styles.sectionTitle}>Profile</Text>
             {currentPubkey ? (
               <>
-                <ProfileCard
-                  avatarUrl={loadedProfile?.picture || "https://via.placeholder.com/90"}
-                  buttonTitle=""
-                  aboutText={loadedProfile?.about || "No description yet."}
-                  name={loadedProfile?.name || loadedProfile?.display_name}
-                  pubkey={currentPubkey}
-                  onButtonPress={handleButtonPress}
-                  onAboutChange={handleAboutChange}
-                />
-                
+                <ProfileCard />
+
                 <View style={styles.slideOutContainer}>
                   <SlideOutOptions
                     icon="more-vert"
@@ -250,8 +203,6 @@ export default function SettingsScreen() {
           </View>
         </ScrollView>
       </View>
-      
-
     </>
   );
 }
@@ -259,7 +210,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    padding: spacing(4),
   },
   webContainer: {
     maxWidth: 950,
@@ -269,38 +220,38 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: spacing(5),
   },
   profileSection: {
-    marginBottom: 30,
+    marginBottom: spacing(8),
   },
   sliderSection: {
-    marginBottom: 30,
+    marginBottom: spacing(8),
   },
   expandableSection: {
-    marginBottom: 20,
+    marginBottom: spacing(5),
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 12,
+    marginBottom: spacing(3),
   },
   loginContainer: {
     alignItems: 'center',
-    padding: 20,
-    borderRadius: 12,
+    padding: spacing(5),
+    borderRadius: spacing(3),
     borderWidth: 1,
   },
   loginText: {
     fontSize: 16,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: spacing(4),
   },
   loginButton: {
     backgroundColor: '#007AFF',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingHorizontal: spacing(6),
+    paddingVertical: spacing(3),
+    borderRadius: spacing(2),
   },
   loginButtonText: {
     fontSize: 16,
@@ -314,41 +265,51 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: spacing(3),
   },
   headerThemeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: spacing(10),
+    height: spacing(10),
+    borderRadius: spacing(5),
     justifyContent: 'center',
-    alignItems: 'center', 
+    alignItems: 'center',
     borderWidth: 1,
     elevation: 2,
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: spacing(1) },
+    shadowRadius: spacing(1),
   },
   floatingThemeButton: {
     position: 'fixed',
-    bottom: 20,
-    right: 20,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    bottom: spacing(5),
+    right: spacing(5),
+    width: spacing(13),
+    height: spacing(13),
+    borderRadius: spacing(7),
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
     elevation: 4,
     shadowColor: '#000',
     shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: spacing(1) },
+    shadowRadius: spacing(2),
     zIndex: 1000,
   },
   slideOutContainer: {
     marginTop: 16,
     marginHorizontal: 16,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    padding: 20,
+    borderRadius: 12,
+    marginHorizontal: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    textAlign: 'center',
   },
 });
 

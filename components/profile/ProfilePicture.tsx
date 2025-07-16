@@ -5,18 +5,19 @@ import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '@/components/theme/ThemeContext';
 import Colors from '@/constants/Colors';
 import { showImagePickerOptions, uploadImageToStorage, ImageUploadResult } from '@/utils/imageUpload';
-import { changePicture } from '@/utils/dataHandling';
 
 interface ProfilePictureProps {
   avatarUrl: string;
   size?: number;
   onImageChange?: (newImageUrl: string) => void;
+  onImageSave?: (newImageUrl: string) => Promise<void>;
 }
 
-export default function ProfilePicture({ 
-  avatarUrl, 
-  size = 90, 
-  onImageChange
+export default function ProfilePicture({
+  avatarUrl,
+  size = 90,
+  onImageChange,
+  onImageSave
 }: ProfilePictureProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -25,12 +26,12 @@ export default function ProfilePicture({
   const { isDark } = useTheme();
   const colorScheme = isDark ? 'dark' : 'light';
   const colors = Colors[colorScheme];
-  
+
   const screenWidth = Dimensions.get('window').width;
   const screenHeight = Dimensions.get('window').height;
   const isMobile = screenWidth < 768;
   const isWeb = Platform.OS === 'web';
-  
+
   const avatarSize = isMobile ? 120 : size;
 
   const handleExpandPress = () => {
@@ -39,7 +40,7 @@ export default function ProfilePicture({
 
   const handleModalDismiss = () => {
     setIsModalVisible(false);
-    
+
     setSelectedImage(null);
     setPreviewUrl(null);
   };
@@ -47,14 +48,14 @@ export default function ProfilePicture({
   const handleUploadImage = async () => {
     try {
       const imageResult = await showImagePickerOptions();
-      
+
       if (!imageResult) {
         return; //cancelled
       }
 
       setSelectedImage(imageResult);
       setPreviewUrl(imageResult.uri);
-      
+
     } catch (error) {
       console.error('Error selecting image:', error);
       Alert.alert('Error', 'Failed to select image. Please try again.');
@@ -62,32 +63,40 @@ export default function ProfilePicture({
   };
 
   const handleSaveImage = async () => {
-    if (!selectedImage) return;
+    if(selectedImage) {
+      try {
+        setIsUploading(true);
 
-    try {
-      setIsUploading(true);
-      
-      const imageUrl = await uploadImageToStorage(selectedImage);
-      
-      await changePicture(imageUrl);
-      
-      if (onImageChange) {
-        onImageChange(imageUrl);
+        const imageUrl = await uploadImageToStorage(selectedImage);
+
+        // Call the parent's save handler if provided
+        if (onImageSave) {
+          await onImageSave(imageUrl);
+        }
+
+        // Call the change handler for immediate UI updates
+        if (onImageChange) {
+          onImageChange(imageUrl);
+        }
+
+        // Close the modal and clear selected image
+        setIsModalVisible(false);
+        setSelectedImage(null);
+        setPreviewUrl(null);
+
+        Alert.alert('Success', 'Profile picture updated successfully!');
+
+      } catch (error) {
+        console.error('Error saving image:', error);
+        Alert.alert('Error', 'Failed to update profile picture. Please try again.');
+      } finally {
+        setIsUploading(false);
       }
-      
-      // Close the modal and clear selected image
-      setIsModalVisible(false);
-      setSelectedImage(null);
-      setPreviewUrl(null);
-      
-      Alert.alert('Success', 'Profile picture updated successfully!');
-      
-    } catch (error) {
-      console.error('Error saving image:', error);
-      Alert.alert('Error', 'Failed to update profile picture. Please try again.');
-    } finally {
-      setIsUploading(false);
     }
+    else {
+      return;
+    }
+
   };
 
   const handleCancelImage = () => {
@@ -119,8 +128,8 @@ export default function ProfilePicture({
         animationType="fade"
         onRequestClose={handleModalDismiss}
       >
-        <Pressable 
-          style={styles.modalOverlay} 
+        <Pressable
+          style={styles.modalOverlay}
           onPress={handleModalDismiss}
         >
           <View style={styles.modalContent}>
@@ -132,14 +141,14 @@ export default function ProfilePicture({
                 <Feather name="x" size={20} color={colors.text} />
               </TouchableOpacity>
             )}
-            
+
             <Avatar
               rounded
               size={Math.min(screenWidth * 0.8, screenHeight * 0.6)}
               source={{ uri: modalImageUrl }}
               containerStyle={styles.modalAvatar}
             />
-            
+
             <View style={styles.buttonContainer}>
               {!selectedImage ? (
                 // Show Upload Image button when no image is selected
@@ -259,4 +268,4 @@ const styles = StyleSheet.create({
   buttonSpacing: {
     marginHorizontal: 8,
   },
-}); 
+});

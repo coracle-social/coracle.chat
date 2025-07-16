@@ -12,7 +12,7 @@ import { Text } from '@/components/theme/Themed';
 import { useTheme } from '@/components/theme/ThemeContext';
 import Colors from '@/constants/Colors';
 import Feather from '@expo/vector-icons/Feather';
-import Slider from '../generalUI/Slider';
+import Slider from '@/components/generalUI/Slider';
 
 interface SliderItem {
   imageUrl: string;
@@ -26,6 +26,7 @@ interface ExpandableSliderProps {
   icon: React.ComponentProps<typeof Feather>['name'];
   sliders: SliderItem[];
   shouldRotate?: boolean;
+  label?: string;
 }
 
 // Enable LayoutAnimation for Android
@@ -38,6 +39,7 @@ export default function ExpandableSlider({
   icon,
   sliders,
   shouldRotate = true,
+  label,
 }: ExpandableSliderProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
@@ -54,14 +56,14 @@ export default function ExpandableSlider({
 
     Animated.timing(animatedHeight, {
       toValue: finalValue,
-      duration: 200, 
+      duration: 200,
       useNativeDriver: false, //necessary for height animation
     }).start();
 
     if (shouldRotate) {
       Animated.timing(chevronRotation, {
         toValue: isExpanded ? 0 : 1,
-        duration: 200, 
+        duration: 200,
         useNativeDriver: true,
       }).start();
     }
@@ -81,6 +83,14 @@ export default function ExpandableSlider({
         {
           backgroundColor: colors.surface,
           borderColor: colors.border,
+          shadowColor: colors.text,
+          shadowOffset: {
+            width: 0,
+            height: 2,
+          },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 3,
         },
       ]}
     >
@@ -89,7 +99,23 @@ export default function ExpandableSlider({
         onPress={toggleExpanded}
         activeOpacity={0.7}
       >
+        <View style={styles.titleContainer}>
+          {label && (
+            <View
+              style={[
+                styles.labelContainer,
+                {
+                  backgroundColor: colors.primary,
+                },
+              ]}
+            >
+              <Text style={[styles.labelText, { color: colors.surface }]}>
+                {label}
+              </Text>
+            </View>
+          )}
         <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+        </View>
         <Animated.View style={{ transform: [{ rotate: chevronInterpolate }] }}>
           <Feather name={icon} size={20} color={colors.text} />
         </Animated.View>
@@ -170,6 +196,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
   },
+  titleContainer: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
   title: {
     fontSize: 16,
     fontWeight: '600',
@@ -182,5 +212,15 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     padding: 4,
+  },
+  labelContainer: {
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  labelText: {
+    fontSize: 10,
+    fontWeight: '500',
   },
 });
