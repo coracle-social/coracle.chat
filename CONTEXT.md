@@ -23,7 +23,7 @@ Expo can support this with https://github.com/chebizarro/Nostr-Signer-Expo-Modul
 **Fast development velocity** across iOS, Android, and Web with a single codebase.
 
 **Unified navigation and UI/UX logic** between platforms (especially important because of the web version):
-- React-Native-Web allows for the UI to transfer 
+- React-Native-Web allows for the UI to transfer
 - React-Navigation-Web allows for unified navigation
 
 **No manual configuration** for faster initial iterating
@@ -84,7 +84,7 @@ I propose using a combination of @rneui as well as custom react native component
 
 ## Welshman Store Adaptation to React Hooks
 
-We can adapt welshman's stores to react hooks manually. Below is an implementation/tests that has been working as a general. 
+We can adapt welshman's stores to react hooks manually. Below is an implementation/tests that has been working as a general.
 
 **Tests included:**
 - Basic set(), get(), update() operations
@@ -155,7 +155,7 @@ export function useStore<T>(
 - Patching the Welshman/lib/dist/Tools.js file to create a custom storage method
 - Changes localStorage depending on device type
 - Includes a synchronous wrapper around AsyncStorage because Welshman tooling expects synchronous properties
-- **Status: Rejected** Working in minimal testing but was not platform agnosticm, relied on editing direct dependencies
+- **Status: Rejected** Working in minimal testing but was not platform agnostic, relied on editing direct dependencies
 
 **Final Approach:**
 - Remove Dependency on localStorage
@@ -190,3 +190,92 @@ export function useStore<T>(
 
 
 # Testing
+
+**UI TESTING**
+  - The combination of @rneui and Expo's accelerated testing provides a good basis for making consistent designs/layouts on mobile/web. Once a few screens are made well on web and mobile, we can copy their general format to prevent UI errors and maintain consistency.
+  - The only UI test I plan on implementing is shown below. It is a basic overflow test that can optionally use onlayout so that it reloads once async data is loaded to the child view.
+  - note:
+    - import { SafeAreaView } from 'react-native-safe-area-context' to prevent overflow, wrapper on the entire content
+
+
+```javascript
+import React from 'react';
+import { View, Dimensions, ViewProps } from 'react-native';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+interface OverflowDebuggerProps extends ViewProps {
+  children: React.ReactNode;
+}
+
+export const OverflowDebugger: React.FC<OverflowDebuggerProps> = ({
+  children,
+  ...rest
+}) => {
+  const onLayout = (event: any) => {
+    const { width, height, x, y } = event.nativeEvent.layout;
+
+    if (__DEV__) {
+      if (x + width > SCREEN_WIDTH || y + height > SCREEN_HEIGHT) {
+        console.warn(
+          `[OverflowDebugger] ⚠️ Overflow detected! ` +
+            `Position: (${x.toFixed(1)}, ${y.toFixed(1)}), ` +
+            `Size: (${width.toFixed(1)} x ${height.toFixed(1)}), ` +
+            `Screen: (${SCREEN_WIDTH} x ${SCREEN_HEIGHT})`
+        );
+      }
+    }
+  };
+
+  return (
+    <View onLayout={onLayout} {...rest}>
+      {children}
+    </View>
+  );
+};
+
+```
+
+  - Then you can wrap any component or the base screen for testing. Lightweight and adds no dependencies.
+  - Something that is especially useful while creating a screen from scratch. Minimal overhead so I will keep it even after that
+
+**TIMELINE**
+No testing until at least a 1-2 months of development or multiple pages completed so I get a good basis for not only querying and handling data, but also the format and organization I will use.
+
+Fake data is never productive, always test with real data.
+
+Eventually integrate CI tests on each commit focusing mainly on unit tests. Favoring unit tests to force my functions to be data independent.
+
+Note on early development: NIP07 is easy on web, mobile signing is more involved. So I will initially test on mobile with NIP01 signing so I don't make any redundant mock to test the UI or functionality on mobile.
+
+
+
+
+**Note on Routing**
+Routing is well defined in React Native with two main options:
+
+1. **Manual control**(I have used this before, it works intuitively but a lot of boiler plate)
+    - utilizes  @react-navigation/native react-native-screens, @react-navigation/native-stack for mobile and @react-navigation/web for web
+    - Most screen navigation is handled by these so android back button works automatically
+    - For dialogs and popups, either define them as modal screens which will work with android
+    - or if you define them as components(convenient), then you can manually intercept with the backhandler to disappear the component
+    - You can always customize per screen with back handler, conditionally popping or replacing screens. Full Control
+    - Screens are only registered if conditions are met
+    - Straightforward to do deep nesting, async checks and complex navigation.
+
+
+2. **Expo-router**
+    - Expo-router automatically handles linking via a folder based system. This syncs mobile and web really well for low and medium complexity tasks(fastest implementation).
+    - However it could be difficult if we have some complex navigation/view stacking
+    - Has no support for custom middleware or serving.
+    - All routes are statically registered based on file structure, so instead of "hiding" a route, you redirect after it renders or block UI conditionally.
+    - dynamic route generation can be difficult, manual setup required
+    - manual setup to restore nav state
+    - file based routing can be messy with conditional nav and redirects for authentication
+    - Nearly everything that react-navigation can do is possible via expo-router but the above mentioned tasks might be more awkward than with react-navigation
+    - still works post ejection
+
+Lightly Recommending Expo Router
+
+
+

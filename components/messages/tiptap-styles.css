@@ -1,0 +1,81 @@
+.tiptap-editor {
+  padding: 10px;
+  min-height: 40px;
+  max-height: 200px;
+  overflow-y: auto;
+  background-color: var(--editor-background, #fff);
+  border: 1px solid var(--editor-border, #e0e0e0);
+  border-radius: 8px;
+}
+
+.ProseMirror {
+  outline: none;
+  border: none;
+  background: transparent;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--editor-text, #333);
+  min-height: 40px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: var(--editor-placeholder, #adb5bd);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.ProseMirror p {
+  margin: 0;
+  padding: 0;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #adb5bd;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.ProseMirror strong {
+  font-weight: bold;
+}
+
+.ProseMirror em {
+  font-style: italic;
+}
+
+.ProseMirror u {
+  text-decoration: underline;
+}
+
+.ProseMirror:focus {
+  outline: none;
+}
+
+/* Scrollbar styling */
+.ProseMirror::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ProseMirror::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.ProseMirror::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.ProseMirror::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+} 

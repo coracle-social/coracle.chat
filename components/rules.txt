@@ -1,0 +1,7 @@
+General Rule for Cross-Platform Centering (Vertical & Horizontal) in Absolute Layouts
+Avoid using percentage-based positioning (top: '50%', left: '50%') with transforms (translateX/Y) for centering.
+Instead, prefer using top: 0, bottom: 0, left: 0, right: 0 with marginVertical: 'auto' and marginHorizontal: 'auto' to achieve consistent centering across both React Native and Web.
+
+Avoid hardcoded width or height in favor of minimum values and padding/margin to define size
+
+tell staab about tunneling for wifi issues and shaking ios device
