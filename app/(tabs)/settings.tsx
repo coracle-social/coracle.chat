@@ -1,18 +1,18 @@
-import { StyleSheet, ScrollView, Platform, TouchableOpacity } from 'react-native';
-import { Text, View } from '@/lib/theme/Themed';
-import { Button } from '@rneui/themed';
-import { Link } from 'expo-router';
-import ProfileCard from '@/components/profile/ProfileCard';
+import SlideOutOptions from '@/components/generalUI/SlideOutOptions';
 import Slider from '@/components/generalUI/Slider';
 import ExpandableSlider from '@/components/profile/ExpandableSlider';
-import SlideOutOptions from '@/components/generalUI/SlideOutOptions';
-import { useTheme } from '@/lib/theme/ThemeContext';
+import ProfileCard from '@/components/profile/ProfileCard';
 import Colors from '@/core/env/Colors';
-import Feather from '@expo/vector-icons/Feather';
-import { pubkey } from '@welshman/app';
-import { useStore } from '@/stores/useWelshmanStore2';
-import { spacing } from '@/core/env/Spacing';
 import { Layout } from '@/core/env/Layout';
+import { spacing } from '@/core/env/Spacing';
+import { useTheme } from '@/lib/theme/ThemeContext';
+import { Text, View } from '@/lib/theme/Themed';
+import { useStore } from '@/stores/useWelshmanStore2';
+import Feather from '@expo/vector-icons/Feather';
+import { Button } from '@rneui/themed';
+import { pubkey } from '@welshman/app';
+import { Link } from 'expo-router';
+import { Platform, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function SettingsScreen() {
   const [currentPubkey] = useStore(pubkey);
@@ -313,4 +313,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-
