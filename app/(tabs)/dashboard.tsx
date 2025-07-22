@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 
 // import NostrTest from '@/tests/integration/NostrTest';
-import { Text, View } from '@/components/theme/Themed';
+import { Text, View } from '@/lib/theme/Themed';
 import { ScrollView } from 'react-native';
 
 export default function TabOneScreen() {

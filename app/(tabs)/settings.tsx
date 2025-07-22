@@ -1,17 +1,18 @@
 import { StyleSheet, ScrollView, Platform, TouchableOpacity } from 'react-native';
-import { Text, View } from '@/components/theme/Themed';
+import { Text, View } from '@/lib/theme/Themed';
 import { Button } from '@rneui/themed';
 import { Link } from 'expo-router';
 import ProfileCard from '@/components/profile/ProfileCard';
 import Slider from '@/components/generalUI/Slider';
 import ExpandableSlider from '@/components/profile/ExpandableSlider';
 import SlideOutOptions from '@/components/generalUI/SlideOutOptions';
-import { useTheme } from '@/components/theme/ThemeContext';
-import Colors from '@/constants/Colors';
+import { useTheme } from '@/lib/theme/ThemeContext';
+import Colors from '@/core/env/Colors';
 import Feather from '@expo/vector-icons/Feather';
 import { pubkey } from '@welshman/app';
 import { useStore } from '@/stores/useWelshmanStore2';
-import { spacing } from '@/constants/Spacing';
+import { spacing } from '@/core/env/Spacing';
+import { Layout } from '@/core/env/Layout';
 
 export default function SettingsScreen() {
   const [currentPubkey] = useStore(pubkey);
@@ -78,7 +79,7 @@ export default function SettingsScreen() {
 
   return (
     <>
-      <View style={[styles.container, Platform.OS === 'web' && styles.webContainer]}>
+      <View style={[styles.container, Platform.OS === 'web' && Layout.webContainer]}>
         {Platform.OS === 'web' ? (
           <TouchableOpacity
             style={[

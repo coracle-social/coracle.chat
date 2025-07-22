@@ -1,7 +1,7 @@
 import React, { useState, forwardRef, useImperativeHandle, useEffect } from 'react';
 import { StyleSheet, View, Pressable } from 'react-native';
-import { Text, useThemeColor } from '@/components/theme/Themed';
-import { useTheme } from '@/components/theme/ThemeContext';
+import { Text, useThemeColor } from '@/lib/theme/Themed';
+import { useTheme } from '@/lib/theme/ThemeContext';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';

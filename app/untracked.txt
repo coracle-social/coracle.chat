@@ -1,0 +1,16 @@
+lib
+    util — generic utility functions
+    hooks — react hooks, each in its own file
+    theme — theme utilities and components with defaults
+    styles — commonly used styles (may import from theme)
+    animations — commonly used animation utilities
+    components — all components that don't import anything from app or welshman/app
+core
+    env — constants, environment variables
+    state — stores based on repository or stand-alone
+    requests — pre-built nostr subscription functions that populate the repository
+    commands — controllers that handle user actions
+    index — re-exports everything else in app, initializes storage, syncing, etc
+app
+    hooks — one hook per file, borrows from core for use-case-specific shared logic
+    components — granular application-specific components. I name these so that they sort lexicographically, e.g. ProfileCreate rather than CreateProfile.

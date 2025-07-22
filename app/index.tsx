@@ -1,7 +1,7 @@
 import { Redirect } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
-import { useTheme } from '@/components/theme/ThemeContext';
-import Colors from '@/constants/Colors';
+import { useTheme } from '@/lib/theme/ThemeContext';
+import Colors from '@/core/env/Colors';
 
 export default function Index() {
   const { isDark } = useTheme();

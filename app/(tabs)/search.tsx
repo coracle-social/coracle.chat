@@ -1,266 +1,422 @@
-import React, { useState, useCallback } from 'react';
-import { Text, View } from '@/components/theme/Themed';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import { useTheme } from '@/components/theme/ThemeContext';
-import Colors from '@/constants/Colors';
-import Feather from '@expo/vector-icons/Feather';
+import React, { useState, useMemo, useEffect } from 'react';
+import { View, ScrollView, StyleSheet, TextInput, TouchableOpacity, Platform } from 'react-native';
+import { Text } from '@/lib/theme/Themed';
+import { Layout } from '@/core/env/Layout';
+import { spacing } from '@/core/env/Spacing';
+import { useTheme } from '@/lib/theme/ThemeContext';
+import Colors from '@/core/env/Colors';
+import { useStore } from '@/stores/useWelshmanStore2';
+import {
+  profiles,
+  profileSearch,
+  searchProfiles,
+  deriveProfile,
+  loadProfile
+} from '@welshman/app';
+import { repository } from '@welshman/app';
+import { load } from '@welshman/net';
+import {
+  NOTE,
+  LONG_FORM,
+  COMMENT,
+  PROFILE,
+  Filter
+} from '@welshman/util';
+import { Router } from '@welshman/router';
 
-const { width: screenWidth } = Dimensions.get('window');
-const GRID_SIZE = 8;
-
-interface SearchItem {
+type SearchResult = {
   id: string;
-  imageUrl: string;
+  type: 'profile' | 'content';
   title: string;
-  description: string;
-  onPress?: () => void;
-}
-
-interface LayoutComponent {
-  id: string;
-  type: 'tall' | 'wide' | 'square';
-  items: SearchItem[];
-  title: string;
-  icon: React.ComponentProps<typeof Feather>['name'];
-  label?: string;
-  width: number;
-  height: number;
-  x: number;
-  y: number;
-}
+  subtitle: string;
+  pubkey?: string;
+  content?: string;
+  timestamp?: number;
+};
 
 export default function SearchScreen() {
-  const [currentLayout, setCurrentLayout] = useState<LayoutComponent[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'people' | 'content'>('all');
+
   const { isDark } = useTheme();
   const colorScheme = isDark ? 'dark' : 'light';
   const colors = Colors[colorScheme];
 
-  const gridSizePx = screenWidth - 32;
-  const cellSize = gridSizePx / GRID_SIZE;
+  // Get Welshman stores
+  const profilesStore = useStore(profiles);
+  const [profileSearchStore] = useStore(profileSearch);
 
-  const sampleItems: SearchItem[] = Array.from({ length: 50 }).map((_, i) => ({
-    id: String(i + 1),
-    imageUrl: `https://via.placeholder.com/60x60/4A90E2/FFFFFF?text=${i + 1}`,
-    title: `Item ${i + 1}`,
-    description: `Description for item ${i + 1}`,
-    onPress: () => console.log(`Pressed item ${i + 1}`),
-  }));
+  // Debug data state and load initial data
+  useEffect(() => {
+    console.log('🔍 Data state debug:');
+    console.log('🔍 Profiles store:', profilesStore?.length || 0, 'profiles');
+    console.log('🔍 Profile search options:', profileSearchStore?.options?.length || 0, 'options');
+    console.log('🔍 Repository dump:', repository.dump().length, 'events');
+    console.log('🔍 Router search relays:', Router.get().Search().getUrls());
 
-  const titles = ['Popular', 'Trending', 'Featured', 'Browse', 'Explore'];
-  const icons: React.ComponentProps<typeof Feather>['name'][] = ['star', 'trending-up', 'heart', 'grid', 'compass'];
-  const labels = ['Hot', 'New', 'Top', 'Browse', 'Now'];
-
-  const generateRandomLayout = useCallback(() => {
-    const occupied = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(false));
-    const validSizes = [
-      [2, 2], [2, 4], [3, 3], [3, 6],
-      [4, 4], [4, 6], [6, 2], [6, 4], [6, 6],
-    ];
-
-    const layouts: LayoutComponent[] = [];
-    const shuffledItems = [...sampleItems].sort(() => Math.random() - 0.5);
-    let itemIndex = 0;
-    let titleIndex = 0;
-
-    const canPlace = (x: number, y: number, w: number, h: number) => {
-      for (let i = y - 1; i < y + h + 1; i++) {
-        for (let j = x - 1; j < x + w + 1; j++) {
-          if (i < 0 || j < 0 || i >= GRID_SIZE || j >= GRID_SIZE) continue;
-          if (occupied[i][j]) return false;
-        }
-      }
-      return true;
-    };
-
-    const placeComponent = (x: number, y: number, w: number, h: number) => {
-      for (let i = y; i < y + h; i++) {
-        for (let j = x; j < x + w; j++) {
-          occupied[i][j] = true;
-        }
-      }
-    };
-
-    for (let attempt = 0; attempt < 100; attempt++) {
-      const [w, h] = validSizes[Math.floor(Math.random() * validSizes.length)];
-      const maxX = GRID_SIZE - w;
-      const maxY = GRID_SIZE - h;
-      const x = Math.floor(Math.random() * (maxX + 1));
-      const y = Math.floor(Math.random() * (maxY + 1));
-
-      if (!canPlace(x, y, w, h)) continue;
-
-      const numItems = w + h;
-      const items = shuffledItems.slice(itemIndex, itemIndex + numItems);
-      itemIndex += numItems;
-
-      if (items.length === 0) break;
-
-      layouts.push({
-        id: `component-${layouts.length}`,
-        type: w === h ? 'square' : w > h ? 'wide' : 'tall',
-        items,
-        title: titles[titleIndex % titles.length],
-        icon: icons[titleIndex % icons.length],
-        label: Math.random() > 0.5 ? labels[titleIndex % labels.length] : undefined,
-        width: w / GRID_SIZE,
-        height: h / GRID_SIZE,
-        x: x / GRID_SIZE,
-        y: y / GRID_SIZE,
+    // Load some initial data if we don't have much
+    if ((profilesStore?.length || 0) < 10) {
+      console.log('🔍 Loading initial profiles...');
+      load({
+        filters: [{ kinds: [PROFILE], limit: 50 }],
+        relays: Router.get().Index().getUrls(),
       });
-
-      placeComponent(x, y, w, h);
-      titleIndex++;
     }
 
-    setCurrentLayout(layouts);
-  }, []);
+    if (repository.dump().length < 100) {
+      console.log('🔍 Loading initial content...');
+      load({
+        filters: [{ kinds: [NOTE], limit: 100 }],
+        relays: Router.get().Index().getUrls(),
+      });
+    }
+  }, [profilesStore, profileSearchStore]);
 
-  const renderComponent = (component: LayoutComponent) => {
-    const style = {
-      position: 'absolute' as const,
-      left: component.x * gridSizePx,
-      top: component.y * cellSize,
-      width: component.width * gridSizePx,
-      height: component.height * cellSize,
-      backgroundColor: colors.surface,
-      borderColor: colors.border,
-      borderWidth: 1,
-      borderRadius: 8,
-      padding: 8,
-    };
+  // Debounced search effect
+  useEffect(() => {
+    console.log('🔍 Search effect triggered:', { searchTerm, length: searchTerm.length });
 
-    return (
-      <View key={component.id} style={style}>
-        <View style={styles.componentHeader}>
-          <Text style={[styles.componentTitle, { color: colors.text }]}>{component.title}</Text>
-          <Feather name={component.icon} size={16} color={colors.text} />
-        </View>
-        <View style={styles.componentContent}>
-          {component.items.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={[styles.item, { backgroundColor: colors.surfaceVariant }]}
-              onPress={item.onPress}
-            >
-              <Text style={[styles.itemTitle, { color: colors.text }]}>{item.title}</Text>
-              <Text style={[styles.itemDescription, { color: colors.secondary }]}>{item.description}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-    );
+    if (searchTerm.length < 2) {
+      console.log('🔍 Search term too short, clearing results');
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
+
+    console.log('🔍 Setting search state and scheduling search...');
+    setIsSearching(true);
+    const timeoutId = setTimeout(() => {
+      performSearch(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  const performSearch = async (term: string) => {
+    console.log('🔍 Starting search for term:', term);
+    console.log('🔍 Active tab:', activeTab);
+    console.log('🔍 Profile search store:', profileSearchStore);
+
+    try {
+      const results: SearchResult[] = [];
+
+      // Search for profiles
+      if (activeTab === 'all' || activeTab === 'people') {
+        console.log('🔍 Searching for profiles...');
+        const profileResults = profileSearchStore?.searchOptions(term) || [];
+        console.log('🔍 Profile search results:', profileResults.length, profileResults);
+
+        for (const profile of profileResults.slice(0, 10)) {
+          console.log('🔍 Processing profile:', profile);
+          results.push({
+            id: profile.event.pubkey,
+            type: 'profile',
+            title: profile.name || profile.display_name || 'Anonymous',
+            subtitle: profile.about || profile.nip05 || 'No description',
+            pubkey: profile.event.pubkey,
+            timestamp: profile.event.created_at,
+          });
+        }
+
+        // Trigger network search for profiles
+        console.log('🔍 Triggering network profile search...');
+        searchProfiles(term);
+      }
+
+      // Search for content
+      if (activeTab === 'all' || activeTab === 'content') {
+        console.log('🔍 Searching for content...');
+        const contentFilter: Filter = {
+          kinds: [NOTE, LONG_FORM, COMMENT],
+          search: term,
+          limit: 20,
+        };
+        console.log('🔍 Content filter:', contentFilter);
+
+        // Query local repository
+        console.log('🔍 Querying local repository...');
+        const localEvents = repository.query([contentFilter]);
+        console.log('🔍 Local events found:', localEvents.length, localEvents);
+
+        for (const event of localEvents.slice(0, 10)) {
+          console.log('🔍 Processing event:', event.id, event.content.substring(0, 50));
+          results.push({
+            id: event.id,
+            type: 'content',
+            title: event.content.substring(0, 50) + (event.content.length > 50 ? '...' : ''),
+            subtitle: `by ${event.pubkey.substring(0, 8)}...`,
+            content: event.content,
+            pubkey: event.pubkey,
+            timestamp: event.created_at,
+          });
+        }
+
+        // Load from search relays
+        console.log('🔍 Loading from search relays...');
+        const searchRelays = Router.get().Search().getUrls();
+        const indexRelays = Router.get().Index().getUrls();
+        const relaysToUse = searchRelays.length > 0 ? searchRelays : indexRelays;
+        console.log('🔍 Search relays:', searchRelays);
+        console.log('🔍 Using relays:', relaysToUse);
+        load({
+          filters: [contentFilter],
+          relays: relaysToUse,
+        });
+      }
+
+      console.log('🔍 Final results:', results.length, results);
+      setSearchResults(results);
+    } catch (error) {
+      console.error('🔍 Search error:', error);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
-  const renderLayout = () => {
-    const totalHeight = GRID_SIZE * cellSize;
+  const formatTimestamp = (timestamp: number) => {
+    const date = new Date(timestamp * 1000);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-    return (
-      <View style={[styles.gridContainer, { width: gridSizePx, height: totalHeight }]}>
-        {/* Draw the grid outlines */}
-        {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, i) => {
-          const row = Math.floor(i / GRID_SIZE);
-          const col = i % GRID_SIZE;
-          return (
-            <View
-              key={`cell-${i}`}
-              style={{
-                position: 'absolute',
-                left: col * cellSize,
-                top: row * cellSize,
-                width: cellSize,
-                height: cellSize,
-                borderWidth: 1.5,
-                borderColor: '#888',
-              }}
-            />
-          );
-        })}
-
-        {currentLayout.map(renderComponent)}
-      </View>
-    );
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString();
   };
+
+  const renderSearchResult = (result: SearchResult) => (
+    <TouchableOpacity
+      key={result.id}
+      style={[
+        styles.resultItem,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        }
+      ]}
+      onPress={() => {
+        // Handle result selection
+        console.log('Selected:', result);
+      }}
+    >
+      <View style={styles.resultHeader}>
+        <View style={styles.resultType}>
+          <Text style={[styles.typeBadge, {
+            backgroundColor: result.type === 'profile' ? colors.primary : colors.secondary
+          }]}>
+            {result.type === 'profile' ? '👤' : '📝'}
+          </Text>
+        </View>
+        <View style={styles.resultContent}>
+          <Text style={[styles.resultTitle, { color: colors.text }]} numberOfLines={2}>
+            {result.title}
+          </Text>
+          <Text style={[styles.resultSubtitle, { color: colors.placeholder }]} numberOfLines={1}>
+            {result.subtitle}
+          </Text>
+        </View>
+        {result.timestamp && (
+          <Text style={[styles.resultTime, { color: colors.placeholder }]}>
+            {formatTimestamp(result.timestamp)}
+          </Text>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <View style={styles.header}>
-        <Text style={[styles.pageTitle, { color: colors.text }]}>Search</Text>
-        <TouchableOpacity
-          style={[styles.searchButton, { backgroundColor: colors.primary }]}
-          onPress={generateRandomLayout}
-        >
-          <Feather name="search" size={20} color={colors.surface} />
-          <Text style={[styles.searchButtonText, { color: colors.surface }]}>Randomize</Text>
-        </TouchableOpacity>
+    <View style={[styles.container, Platform.OS === 'web' && Layout.webContainer]}>
+      {/* Search Header */}
+      <View style={[styles.searchHeader, { backgroundColor: colors.surface }]}>
+        <View style={[styles.searchInputContainer, { backgroundColor: colors.surfaceVariant }]}>
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Search people and content..."
+            placeholderTextColor={colors.placeholder}
+            value={searchTerm}
+            onChangeText={setSearchTerm}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {isSearching && (
+            <View style={styles.searchingIndicator}>
+              <Text style={{ color: colors.primary }}>🔍</Text>
+            </View>
+          )}
+        </View>
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent}>
-        {renderLayout()}
-      </ScrollView>
-    </SafeAreaView>
+      {/* Search Tabs */}
+      <View style={[styles.tabContainer, { backgroundColor: colors.surface }]}>
+        {(['all', 'people', 'content'] as const).map((tab) => (
+          <TouchableOpacity
+            key={tab}
+          style={[
+              styles.tab,
+              activeTab === tab && {
+                backgroundColor: colors.primary,
+                borderColor: colors.primary
+              }
+            ]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text style={[
+              styles.tabText,
+            {
+                color: activeTab === tab ? colors.surface : colors.text
+              }
+            ]}>
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Search Results */}
+      <ScrollView
+        style={styles.resultsContainer}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.resultsContent}
+      >
+        {searchTerm.length < 2 ? (
+          <View style={styles.emptyState}>
+            <Text style={[styles.emptyStateText, { color: colors.placeholder }]}>
+              Start typing to search for people and content...
+            </Text>
+          </View>
+        ) : isSearching ? (
+          <View style={styles.loadingState}>
+            <Text style={[styles.loadingText, { color: colors.placeholder }]}>
+              Searching...
+            </Text>
+          </View>
+        ) : searchResults.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={[styles.emptyStateText, { color: colors.placeholder }]}>
+              No results found for "{searchTerm}"
+            </Text>
+          </View>
+        ) : (
+          <>
+            <Text style={[styles.resultsCount, { color: colors.placeholder }]}>
+              {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
+            </Text>
+            {searchResults.map(renderSearchResult)}
+          </>
+        )}
+    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  container: {
+    flex: 1,
   },
-  pageTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  searchHeader: {
+    padding: spacing(4),
+    paddingBottom: spacing(2),
   },
-  searchButton: {
+  searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 8,
+    borderRadius: 12,
+    paddingHorizontal: spacing(3),
+    paddingVertical: spacing(2),
   },
-  searchButtonText: {
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: spacing(1),
+  },
+  searchingIndicator: {
+    marginLeft: spacing(2),
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing(4),
+    paddingBottom: spacing(2),
+    gap: spacing(2),
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: spacing(2),
+    paddingHorizontal: spacing(3),
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    alignItems: 'center',
+  },
+  tabText: {
     fontSize: 14,
     fontWeight: '600',
   },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-  },
-  gridContainer: {
-    position: 'relative',
-    alignSelf: 'center',
-  },
-  componentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  componentTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  componentContent: {
-    gap: 4,
-  },
-  item: {
-    padding: 6,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
+  resultsContainer: {
     flex: 1,
   },
-  itemTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 2,
+  resultsContent: {
+    padding: spacing(4),
   },
-  itemDescription: {
-    fontSize: 10,
-    opacity: 0.8,
+  resultsCount: {
+    fontSize: 14,
+    marginBottom: spacing(3),
+  },
+  resultItem: {
+    marginBottom: spacing(3),
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: spacing(3),
+  },
+  resultHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  resultType: {
+    marginRight: spacing(3),
+  },
+  typeBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 16,
+  },
+  resultContent: {
+    flex: 1,
+  },
+  resultTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: spacing(1),
+  },
+  resultSubtitle: {
+    fontSize: 14,
+  },
+  resultTime: {
+    fontSize: 12,
+    marginLeft: spacing(2),
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing(8),
+  },
+  emptyStateText: {
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  loadingState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing(8),
+  },
+  loadingText: {
+    fontSize: 16,
   },
 });

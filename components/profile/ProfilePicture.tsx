@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { View, StyleSheet, Modal, TouchableOpacity, Dimensions, Pressable, Platform, Alert } from 'react-native';
 import { Avatar, Button } from '@rneui/themed';
 import Feather from '@expo/vector-icons/Feather';
-import { useTheme } from '@/components/theme/ThemeContext';
-import Colors from '@/constants/Colors';
-import { showImagePickerOptions, uploadImageToStorage, ImageUploadResult } from '@/utils/imageUpload';
+import { useTheme } from '@/lib/theme/ThemeContext';
+import Colors from '@/core/env/Colors';
+import { showImagePickerOptions, uploadImageToStorage, ImageUploadResult } from '@/core/commands/imageUpload';
 
 interface ProfilePictureProps {
   avatarUrl: string;
@@ -69,17 +69,14 @@ export default function ProfilePicture({
 
         const imageUrl = await uploadImageToStorage(selectedImage);
 
-        // Call the parent's save handler if provided
         if (onImageSave) {
           await onImageSave(imageUrl);
         }
 
-        // Call the change handler for immediate UI updates
         if (onImageChange) {
           onImageChange(imageUrl);
         }
 
-        // Close the modal and clear selected image
         setIsModalVisible(false);
         setSelectedImage(null);
         setPreviewUrl(null);

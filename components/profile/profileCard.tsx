@@ -1,12 +1,12 @@
 import { View, StyleSheet, TextInput, Dimensions, Platform, TouchableWithoutFeedback, Keyboard, Text } from 'react-native';
 import { useState, useEffect } from 'react';
 import { Button } from '@rneui/themed';
-import { useTheme } from '@/components/theme/ThemeContext';
-import Colors from '@/constants/Colors';
+import { useTheme } from '@/lib/theme/ThemeContext';
+import Colors from '@/core/env/Colors';
 import ProfilePicture from './ProfilePicture';
-import { updateProfile, changePicture } from '@/utils/dataHandling';
+import { updateProfile, changePicture } from '@/lib/utils/dataHandling';
 import DisplayCopyString from '@/components/generalUI/DisplayCopyString';
-import { isMobile as isMobileBreakpoint } from '@/constants/Breakpoints';
+import { isMobile as isMobileBreakpoint } from '@/core/env/Breakpoints';
 import { useStore } from '@/stores/useWelshmanStore2';
 import { pubkey, userProfile } from '@welshman/app';
 import { displayProfile, displayPubkey } from '@welshman/util';

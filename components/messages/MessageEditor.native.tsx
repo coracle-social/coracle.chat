@@ -1,6 +1,6 @@
 import { useRef, forwardRef, useImperativeHandle } from 'react';
 import { StyleSheet, Pressable } from 'react-native';
-import { Text, useThemeColor } from '@/components/theme/Themed';
+import { Text, useThemeColor } from '@/lib/theme/Themed';
 
 const RichEditorModule = require('react-native-pell-rich-editor');
 const RichEditor = RichEditorModule.RichEditor;

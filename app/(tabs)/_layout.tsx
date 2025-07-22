@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { Link, Tabs, useSegments } from 'expo-router';
 import { Pressable, Platform, View, StyleSheet, Text } from 'react-native';
 import SolarIcon from '@/components/SolarIcons';
-import { useThemeColors } from '@/components/theme/ThemeContext';
-import { useClientOnlyValue } from '@/utils/useClientOnlyValue';
+import { useThemeColors } from '@/lib/theme/ThemeContext';
+import { useClientOnlyValue } from '@/lib/utils/useClientOnlyValue';
 import { pubkey } from '@welshman/app';
 import { last } from '@welshman/lib';
 import { useStore } from '@/stores/useWelshmanStore2';
-import { TabRoutes, navigateToTab } from '@/utils/routes';
-import Colors from '@/constants/Colors';
+import { TabRoutes, navigateToTab } from '@/lib/utils/routes';
+import Colors from '@/core/env/Colors';
 
 const getTabIcons = (colors: typeof Colors.light) => ({
   [TabRoutes.DASHBOARD]: colors.tabIcons.dashboard,

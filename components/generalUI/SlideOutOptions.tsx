@@ -9,8 +9,8 @@ import {
   UIManager,
 } from 'react-native';
 import { Icon } from '@rneui/themed';
-import { useTheme } from '@/components/theme/ThemeContext';
-import Colors from '@/constants/Colors';
+import { useTheme } from '@/lib/theme/ThemeContext';
+import Colors from '@/core/env/Colors';
 
 interface SlideOutOptionsProps {
   icon?: string;

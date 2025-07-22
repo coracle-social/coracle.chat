@@ -6,14 +6,14 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 
-import { useTheme } from '@/components/theme/ThemeContext';
+import { useTheme } from '@/lib/theme/ThemeContext';
 import { routerContext } from '@welshman/router';
-import { initializeWelshmanStorage } from '@/utils/welshman-storage';
-import { MetaConfig } from '@/constants/MetaConfig';
+import { initializeWelshmanStorage } from '@/core/state/welshman-storage';
+import { MetaConfig } from '@/core/env/MetaConfig';
 import {  SafeAreaProvider } from 'react-native-safe-area-context';
 import { OverflowReader } from '@/components/generalUI/OverflowReader';
-import { ThemeProvider as AppThemeProvider } from '@/components/theme/ThemeContext';
-import { RNEUIThemeWrapper } from '@/components/theme/RNEUIThemeProvider';
+import { ThemeProvider as AppThemeProvider } from '@/lib/theme/ThemeContext';
+import { RNEUIThemeWrapper } from '@/lib/theme/RNEUIThemeProvider';
 import { RelayMode } from '@welshman/util';
 
 export {
