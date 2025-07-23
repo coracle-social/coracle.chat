@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { StyleSheet, View, ScrollView, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 
-import { Text } from '@/components/theme/Themed';
+import { Text } from '@/lib/theme/Themed';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MessageEditor, { MessageEditorRef } from '@/components/messages/MessageEditor';
 

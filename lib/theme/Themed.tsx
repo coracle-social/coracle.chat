@@ -5,7 +5,7 @@
 
 import { Text as DefaultText, View as DefaultView } from 'react-native';
 
-import Colors from '@/constants/Colors';
+import Colors from '@/core/env/Colors';
 import { useTheme } from './ThemeContext';
 
 type ThemeProps = {

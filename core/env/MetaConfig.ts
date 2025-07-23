@@ -22,12 +22,20 @@ export const MetaConfig = {
   TWITTER_CARD_TYPE: "summary",
 
   // Default Nostr relays for DNS prefetch, how can I test if this actually helps/measure its effect?
-  DEFAULT_RELAYS: ["wss://relay.damus.io/", "wss://nos.lol/"]
+  DEFAULT_RELAYS: ["wss://relay.damus.io/", "wss://nos.lol/"],
+
+  // Search-optimized relays for better search results
+  SEARCH_RELAYS: [
+    "wss://search.nos.today/",
+    "wss://relay.nostr.band/",
+    "wss://relay.damus.io/",
+    "wss://nos.lol/"
+  ]
 
 } as const;
 
 export const getDnsPrefetchLinks = () => {
-  return MetaConfig.DEFAULT_RELAYS.map(relay =>
+  return [...MetaConfig.DEFAULT_RELAYS, ...MetaConfig.SEARCH_RELAYS].map(relay =>
     `//${relay}`
   );
 };

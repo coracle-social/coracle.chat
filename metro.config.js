@@ -22,7 +22,7 @@ config.resolver.platforms = ['ios', 'android', 'native', 'web'];
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (moduleName === 'nostr-signer-capacitor-plugin') {
     return {
-      filePath: require.resolve('./utils/empty-module.js'),
+      filePath: require.resolve('./lib/utils/empty-module.js'),
       type: 'sourceFile',
     };
   }

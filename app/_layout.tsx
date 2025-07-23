@@ -6,19 +6,19 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 
-import { useTheme } from '@/components/theme/ThemeContext';
+import { OverFlowReader } from '@/components/generalUI/OverFlowReader';
+import { MetaConfig } from '@/core/env/MetaConfig';
+import { initializeWelshmanStorage } from '@/core/state/welshman-storage';
+import { PopupManager } from '@/lib/components/popups/PopupManager';
+import { RNEUIThemeWrapper } from '@/lib/theme/RNEUIThemeProvider';
+import { ThemeProvider as AppThemeProvider, useTheme } from '@/lib/theme/ThemeContext';
 import { routerContext } from '@welshman/router';
-import { initializeWelshmanStorage } from '@/utils/welshman-storage';
-import { MetaConfig } from '@/constants/MetaConfig';
-import {  SafeAreaProvider } from 'react-native-safe-area-context';
-import { OverflowReader } from '@/components/generalUI/OverflowReader';
-import { ThemeProvider as AppThemeProvider } from '@/components/theme/ThemeContext';
-import { RNEUIThemeWrapper } from '@/components/theme/RNEUIThemeProvider';
 import { RelayMode } from '@welshman/util';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export {
   // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
+  ErrorBoundary
 } from 'expo-router';
 
 export const unstable_settings = {
@@ -59,6 +59,9 @@ function RootLayoutNav() {
     // Configure default relays for the router
     routerContext.getDefaultRelays = () => [...MetaConfig.DEFAULT_RELAYS];
 
+    // Configure search relays for the router
+    routerContext.getSearchRelays = () => [...MetaConfig.SEARCH_RELAYS];
+
     // Configure getPubkeyRelays to fall back to default relays when no user relays are found
     const originalGetPubkeyRelays = routerContext.getPubkeyRelays;
     routerContext.getPubkeyRelays = (pubkey: string, mode?: RelayMode) => {
@@ -89,6 +92,7 @@ function RootLayoutNav() {
       <RNEUIThemeWrapper>
         <SafeAreaProvider>
           <ThemeProviderWrapper />
+          <PopupManager />
         </SafeAreaProvider>
       </RNEUIThemeWrapper>
     </AppThemeProvider>
@@ -101,13 +105,14 @@ function ThemeProviderWrapper() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <OverflowReader>
+      <OverFlowReader>
         <Stack>
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(modals)" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: true, title: '' }} />
         </Stack>
-      </OverflowReader>
+      </OverFlowReader>
     </ThemeProvider>
   );
 }

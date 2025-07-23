@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "typeRoots": ["./types", "./node_modules/@types"],
+    "typeRoots": ["lib/types", "./node_modules/@types"],
     "target": "esnext",
     "lib": [
       "dom",

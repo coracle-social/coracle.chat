@@ -1,4 +1,4 @@
-import { Text, View } from '@/components/theme/Themed';
+import { Text, View } from '@/lib/theme/Themed';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SpacesScreen() {

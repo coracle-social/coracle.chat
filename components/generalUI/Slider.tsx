@@ -1,7 +1,7 @@
 import { View, StyleSheet, Image, Dimensions } from 'react-native';
-import { Text } from '@/components/theme/Themed';
-import { useTheme } from '@/components/theme/ThemeContext';
-import Colors from '@/constants/Colors';
+import { Text } from '@/lib/theme/Themed';
+import { useTheme } from '@/lib/theme/ThemeContext';
+import Colors from '@/core/env/Colors';
 
 interface SliderProps {
   imageUrl: string;

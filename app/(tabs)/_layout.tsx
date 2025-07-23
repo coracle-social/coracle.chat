@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
-import { Link, Tabs, useSegments } from 'expo-router';
-import { Pressable, Platform, View, StyleSheet, Text } from 'react-native';
 import SolarIcon from '@/components/SolarIcons';
-import { useThemeColors } from '@/components/theme/ThemeContext';
-import { useClientOnlyValue } from '@/utils/useClientOnlyValue';
+import Colors from '@/core/env/Colors';
+import { useThemeColors } from '@/lib/theme/ThemeContext';
+import { TabRoutes, navigateToTab } from '@/lib/utils/routes';
+import { useClientOnlyValue } from '@/lib/utils/useClientOnlyValue';
+import { useStore } from '@/stores/useWelshmanStore2';
 import { pubkey } from '@welshman/app';
 import { last } from '@welshman/lib';
-import { useStore } from '@/stores/useWelshmanStore2';
-import { TabRoutes, navigateToTab } from '@/utils/routes';
-import Colors from '@/constants/Colors';
+import { Link, Tabs, router, useSegments } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { BackHandler, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 const getTabIcons = (colors: typeof Colors.light) => ({
   [TabRoutes.DASHBOARD]: colors.tabIcons.dashboard,
@@ -83,7 +83,46 @@ export default function TabLayout() {
 
   useEffect(() => {
     const currentTab = getCurrentTab();
+    const previousTab = activeTab;
+
+    // Only push history state if we actually changed tabs
+    if (Platform.OS === 'web' && currentTab !== previousTab) {
+      const url = `/${currentTab}`;
+      if (window.location.pathname !== url) {
+        history.pushState({ tab: currentTab }, '', url);
+      }
+    }
+
     setActiveTab(currentTab);
+  }, [segments, activeTab]);
+
+    // Handle back button override for Android only
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+
+    console.log('🔧 Setting up Android back button override for settings tab');
+
+    const handleBackPress = () => {
+      const currentTab = getCurrentTab();
+      console.log('🔧 Android back button pressed! Current tab:', currentTab);
+      console.log('🔧 Is settings tab?', currentTab === TabRoutes.SETTINGS);
+
+      if (currentTab === TabRoutes.SETTINGS) {
+        console.log('🔧 ✅ Android back button pressed from settings, navigating to explore');
+        router.push('/(tabs)/explore');
+        return true; // Prevent default back action
+      }
+      console.log('🔧 ❌ Not on settings tab, allowing normal back action');
+      return false; // Allow default back action
+    };
+
+    console.log('🔧 Setting up Android back button listener');
+    const sub = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
+
+    return () => {
+      console.log('🔧 Cleaning up Android back button listener');
+      sub.remove();
+    };
   }, [segments]);
 
   if (isWeb) {
@@ -107,6 +146,8 @@ export default function TabLayout() {
         <View style={styles.webContent}>
           {/* Header with Login/Logout Button */}
           <View style={[styles.webHeader, { borderBottomColor: colors.sidebarBorder }]}>
+
+
             <Link href="/modal" asChild>
               <Pressable>
                 {({ pressed }) => (

@@ -8,9 +8,9 @@ import {
   Platform,
   UIManager,
 } from 'react-native';
-import { Text } from '@/components/theme/Themed';
-import { useTheme } from '@/components/theme/ThemeContext';
-import Colors from '@/constants/Colors';
+import { Text } from '@/lib/theme/Themed';
+import { useTheme } from '@/lib/theme/ThemeContext';
+import Colors from '@/core/env/Colors';
 import Feather from '@expo/vector-icons/Feather';
 import Slider from '@/components/generalUI/Slider';
 

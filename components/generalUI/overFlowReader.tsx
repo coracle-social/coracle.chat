@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Dimensions, ViewProps, LayoutChangeEvent} from 'react-native';
+import { Dimensions, LayoutChangeEvent, View, ViewProps } from 'react-native';
 
 const {width: screen_width, height: screen_height} = Dimensions.get('window');
 
@@ -11,7 +11,7 @@ const isOverflowing = (x: number, y: number, width: number, height: number) => {
     return x < 0 || y < 0 || x + width > screen_width || y + height > screen_height;
 }
 
-export const OverflowReader: React.FC<OverflowReaderProps> = ({children, ...props}) => {
+export const OverFlowReader: React.FC<OverflowReaderProps> = ({children, ...props}) => {
     const onLayout = (event: LayoutChangeEvent) => {
         const {width, height, x, y} = event.nativeEvent.layout;
 

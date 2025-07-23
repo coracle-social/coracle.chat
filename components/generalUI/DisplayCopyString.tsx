@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { View, StyleSheet, Platform, Alert, TouchableOpacity } from 'react-native';
 import { Text } from '@rneui/themed';
 import Feather from '@expo/vector-icons/Feather';
-import { useTheme } from '@/components/theme/ThemeContext';
-import Colors from '@/constants/Colors';
+import { useTheme } from '@/lib/theme/ThemeContext';
+import Colors from '@/core/env/Colors';
 import * as Clipboard from 'expo-clipboard';
 
 

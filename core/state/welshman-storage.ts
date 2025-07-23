@@ -1,6 +1,6 @@
 import { sync } from '@welshman/store';
 import { pubkey, sessions } from '@welshman/app';
-import { platformStorageProvider } from '@/utils/storage-provider';
+import { platformStorageProvider } from '@/core/state/storage-provider';
 
 // Sync existing Welshman stores with platform storage
 export const initializeWelshmanStorage = async () => {

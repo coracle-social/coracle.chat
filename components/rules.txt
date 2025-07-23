@@ -4,4 +4,5 @@ Instead, prefer using top: 0, bottom: 0, left: 0, right: 0 with marginVertical: 
 
 Avoid hardcoded width or height in favor of minimum values and padding/margin to define size
 
-tell staab about tunneling for wifi issues and shaking ios device
+Use aliases
+don't ever define direct colors, either use the colors file or theme

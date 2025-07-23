@@ -1,5 +1,5 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
-import { MetaConfig, getDnsPrefetchLinks} from '@/constants/MetaConfig';
+import { MetaConfig, getDnsPrefetchLinks} from '@/core/env/MetaConfig';
 
 // This file is web-only and used to configure the root HTML for every
 // web page during static rendering.
