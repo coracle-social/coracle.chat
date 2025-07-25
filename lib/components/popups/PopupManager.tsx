@@ -10,11 +10,8 @@ export const PopupManager: React.FC = () => {
     isVisible,
     currentPopup,
     popupStack,
-    showPopup,
     hidePopup,
-    pushPopup,
     popPopup,
-    clearPopups
   } = usePopup();
 
   useEffect(() => {
@@ -44,7 +41,6 @@ export const PopupManager: React.FC = () => {
       window.addEventListener('popstate', handlePopState);
       return () => {
         window.removeEventListener('popstate', handlePopState);
-        // Clean up the state we added
         if (window.history.state?.modalOpen) {
           window.history.back();
         }
