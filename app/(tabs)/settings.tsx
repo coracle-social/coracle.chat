@@ -5,6 +5,7 @@ import ProfileCard from '@/components/profile/ProfileCard';
 import Colors from '@/core/env/Colors';
 import { Layout } from '@/core/env/Layout';
 import { spacing } from '@/core/env/Spacing';
+
 import { useTheme } from '@/lib/theme/ThemeContext';
 import { Text, View } from '@/lib/theme/Themed';
 import { useStore } from '@/stores/useWelshmanStore2';
@@ -17,6 +18,7 @@ import { Platform, ScrollView, StyleSheet, TouchableOpacity } from 'react-native
 export default function SettingsScreen() {
   const [currentPubkey] = useStore(pubkey);
   const { isDark, toggleTheme } = useTheme();
+
   const colorScheme = isDark ? 'dark' : 'light';
   const colors = Colors[colorScheme];
 
@@ -189,6 +191,8 @@ export default function SettingsScreen() {
             />
           </View>
 
+
+
           <View style={styles.expandableSection}>
             <ExpandableSlider
               title="Account Management"
@@ -298,6 +302,7 @@ const styles = StyleSheet.create({
     shadowRadius: spacing(2),
     zIndex: 1000,
   },
+
   slideOutContainer: {
     marginTop: 16,
     marginHorizontal: 16,

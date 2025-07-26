@@ -4,6 +4,7 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import 'react-native-reanimated';
 
 import { OverFlowReader } from '@/components/generalUI/OverFlowReader';
@@ -56,6 +57,17 @@ export default function RootLayout() {
 function RootLayoutNav() {
   useEffect(() => {
     if ((global as { __welshmanStorageInitialized?: boolean }).__welshmanStorageInitialized) return;
+
+    // Mobile-specific relay testing
+    if (Platform.OS !== 'web') {
+      console.log('🔌 Mobile relay test:', {
+        defaultRelays: MetaConfig.DEFAULT_RELAYS,
+        searchRelays: MetaConfig.SEARCH_RELAYS,
+        platform: Platform.OS,
+        relayCount: MetaConfig.DEFAULT_RELAYS.length + MetaConfig.SEARCH_RELAYS.length
+      });
+    }
+
     // Configure default relays for the router
     routerContext.getDefaultRelays = () => [...MetaConfig.DEFAULT_RELAYS];
 
@@ -77,6 +89,16 @@ function RootLayoutNav() {
         // Initialize the persistent stores using the new sync function
         await initializeWelshmanStorage();
         console.log("Welshman storage synced successfully");
+
+        // Mobile-specific network status check
+        if (Platform.OS !== 'web') {
+          console.log('📱 Mobile network status:', {
+            platform: Platform.OS,
+            storageInitialized: true,
+            defaultRelaysConfigured: !!routerContext.getDefaultRelays,
+            searchRelaysConfigured: !!routerContext.getSearchRelays
+          });
+        }
       } catch (error) {
         console.error("Failed to initialize Welshman storage:", error);
       }

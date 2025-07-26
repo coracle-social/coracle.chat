@@ -39,3 +39,19 @@ export const getDnsPrefetchLinks = () => {
     `//${relay}`
   );
 };
+
+// Public relays for profile loading and fallback
+export const PUBLIC_RELAYS = [
+  'wss://relay.damus.io',
+  'wss://nos.lol',
+  'wss://relay.snort.social',
+  'wss://offchain.pub',
+  'wss://relay.nostr.band',
+  'wss://relayable.org',
+  'wss://relay.nostr.wirednet.jp',
+  'wss://nostr.wine',
+  'wss://relay.nostr.info',
+  'wss://relay.nostr.com',
+  'wss://nostr.bitcoiner.social',
+  'wss://relay.nostr.net'
+];

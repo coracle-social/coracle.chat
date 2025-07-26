@@ -1,15 +1,15 @@
-import { View, StyleSheet, TextInput, Dimensions, Platform, TouchableWithoutFeedback, Keyboard, Text } from 'react-native';
-import { useState, useEffect } from 'react';
-import { Button } from '@rneui/themed';
-import { useTheme } from '@/lib/theme/ThemeContext';
-import Colors from '@/core/env/Colors';
-import ProfilePicture from './ProfilePicture';
-import { updateProfile, changePicture } from '@/lib/utils/dataHandling';
-import DisplayCopyString from '@/components/generalUI/DisplayCopyString';
+import { PubkeyDisplay } from '@/components/generalUI/PubkeyDisplay';
 import { isMobile as isMobileBreakpoint } from '@/core/env/Breakpoints';
+import Colors from '@/core/env/Colors';
+import { useTheme } from '@/lib/theme/ThemeContext';
+import { changePicture, updateProfile } from '@/lib/utils/dataHandling';
 import { useStore } from '@/stores/useWelshmanStore2';
+import { Button } from '@rneui/themed';
 import { pubkey, userProfile } from '@welshman/app';
 import { displayProfile, displayPubkey } from '@welshman/util';
+import { useEffect, useState } from 'react';
+import { Dimensions, Keyboard, Platform, StyleSheet, Text, TextInput, TouchableWithoutFeedback, View } from 'react-native';
+import ProfilePicture from './ProfilePicture';
 
 export default function ProfileCard() {
   const { isDark } = useTheme();
@@ -97,9 +97,9 @@ export default function ProfileCard() {
     ]}>
       <View style={styles.leftSide}>
         <View style={styles.pubkeyContainer}>
-          <DisplayCopyString
-            value={currentPubkey}
-            onCopy={(value) => console.log('Public key copied:', value)}
+          <PubkeyDisplay
+            pubkey={currentPubkey}
+            showLabel={false}
           />
         </View>
 
