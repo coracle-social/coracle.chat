@@ -2,6 +2,7 @@ export type SearchResultType = 'profile' | 'content' | 'event' | 'group' | 'arti
 
 //fields such as likes won't fill on initial search since those events must be separately found
 //there's probably a better way to group it, rather than adding it later
+//eventualy a looser object for metadata, but for now this is fine
 export interface SearchResultMetadata {
   timestamp?: number; // Creation timestamp
   recentActivityTimestamp?: number; // Most recent activity timestamp
@@ -9,7 +10,7 @@ export interface SearchResultMetadata {
   authorPubkey?: string;
   tags?: string[];
   verified?: boolean;
-  trustScore?: number;
+  trustScore?: number; // Optional: used for WoT search results with legitimate trust scores
   viewCount?: number;
   likeCount?: number;
   replyCount?: number;
@@ -20,6 +21,12 @@ export interface SearchResultMetadata {
   isFollowing?: boolean;
   searchScore?: number; // Score from fuzzy search with weighted fields
   qualityScore?: number; // Quality score based on followers, following, verification
+
+  // Web of Trust (WoT) fields
+  wotScore?: number; // Raw WoT score
+  trustLevel?: 'high' | 'medium' | 'low' | 'negative'; // Trust level classification
+  networkDistance?: number; // How many hops away in the network
+  contextualScore?: number; // Contextual score based on user's network
 }
 
 export interface SearchResult {

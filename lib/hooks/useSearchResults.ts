@@ -14,7 +14,6 @@ export const useSearchResults = (
   const searchResults = useMemo(() => {
     let results: SearchResult[] = [];
 
-    // Determine which results to include based on selected filters
     if (selectedFilters.includes('people')) {
       results = [...results, ...profileResults];
     }
@@ -22,7 +21,7 @@ export const useSearchResults = (
       results = [...results, ...contentResults];
     }
 
-    // Apply sorting to all tabs
+    // Apply sorting to all tabs, if adding many more options separate tab sorts for clarity
     return results.sort((a, b) => {
       switch (selectedSort) {
         case 'date':
@@ -51,42 +50,42 @@ export const useSearchResults = (
 
             const aFollowerWeight = (a.metadata.followerCount || 0) * 2.0; // Heavy weight for followers
             const aFollowingWeight = (a.metadata.followingCount || 0) * 0.5; // Medium weight for following
-            const aTrustWeight = (a.metadata.trustScore || 0) * 0.3; // Light weight for trust score
             const aQualityWeight = (a.metadata.qualityScore || 0) * 100; // Quality score bonus
-            const aPopularity = aFollowerWeight + aFollowingWeight + aTrustWeight + aQualityWeight + aActivityBonus;
+            // Only use trust score for WoT results (when trustLevel is present)
+            const aTrustWeight = (a.metadata.trustLevel && a.metadata.trustScore) ? (a.metadata.trustScore || 0) * 0.3 : 0;
+            const aPopularity = aFollowerWeight + aFollowingWeight + aQualityWeight + aActivityBonus + aTrustWeight;
 
             const bFollowerWeight = (b.metadata.followerCount || 0) * 2.0;
             const bFollowingWeight = (b.metadata.followingCount || 0) * 0.5;
-            const bTrustWeight = (b.metadata.trustScore || 0) * 0.3;
             const bQualityWeight = (b.metadata.qualityScore || 0) * 100;
-            const bPopularity = bFollowerWeight + bFollowingWeight + bTrustWeight + bQualityWeight + bActivityBonus;
+            const bTrustWeight = (b.metadata.trustLevel && b.metadata.trustScore) ? (b.metadata.trustScore || 0) * 0.3 : 0;
+            const bPopularity = bFollowerWeight + bFollowingWeight + bQualityWeight + bActivityBonus + bTrustWeight;
 
             return bPopularity - aPopularity;
           }
         case 'trust':
-          // Use verification score for both profiles and content
-          const aTrust = a.metadata.trustScore || 0;
-          const bTrust = b.metadata.trustScore || 0;
+          const aTrust = a.metadata.trustLevel && a.metadata.trustScore ? a.metadata.trustScore : 0;
+          const bTrust = b.metadata.trustLevel && b.metadata.trustScore ? b.metadata.trustScore : 0;
           return bTrust - aTrust;
         case 'name':
           return (a.title || '').localeCompare(b.title || '');
         case 'relevance':
         default:
-          // Relevance: prioritize verified profiles and content with more engagement
           if (a.type === 'content') {
-            const aRelevance = (a.metadata.verified ? 2 : 0) + (a.metadata.likeCount || 0) + (a.metadata.trustScore || 0);
-            const bRelevance = (b.metadata.verified ? 2 : 0) + (b.metadata.likeCount || 0) + (b.metadata.trustScore || 0);
+            const aRelevance = (a.metadata.likeCount || 0);
+            const bRelevance = (b.metadata.likeCount || 0);
             return bRelevance - aRelevance;
           } else {
-            // For profiles: consider verification, follower count, trust score, and recent activity
             const now = Math.floor(Date.now() / 1000);
             const aActivityBonus = a.metadata.recentActivityTimestamp ?
-              Math.max(0, 10 - Math.floor((now - a.metadata.recentActivityTimestamp) / (24 * 60 * 60))) : 0; // Activity within 10 days gets bonus
+              Math.max(0, 10 - Math.floor((now - a.metadata.recentActivityTimestamp) / (24 * 60 * 60))) : 0;
             const bActivityBonus = b.metadata.recentActivityTimestamp ?
               Math.max(0, 10 - Math.floor((now - b.metadata.recentActivityTimestamp) / (24 * 60 * 60))) : 0;
 
-            const aRelevance = (a.metadata.verified ? 3 : 0) + (a.metadata.followerCount || 0) * 0.1 + (a.metadata.trustScore || 0) + aActivityBonus;
-            const bRelevance = (b.metadata.verified ? 3 : 0) + (b.metadata.followerCount || 0) * 0.1 + (b.metadata.trustScore || 0) + bActivityBonus;
+            const aTrustScore = a.metadata.trustLevel && a.metadata.trustScore ? a.metadata.trustScore : 0;
+            const bTrustScore = b.metadata.trustLevel && b.metadata.trustScore ? b.metadata.trustScore : 0;
+            const aRelevance = (a.metadata.followerCount || 0) * 0.1 + aActivityBonus + aTrustScore;
+            const bRelevance = (b.metadata.followerCount || 0) * 0.1 + bActivityBonus + bTrustScore;
             return bRelevance - aRelevance;
           }
       }

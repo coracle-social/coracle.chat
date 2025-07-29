@@ -1,10 +1,11 @@
 import { SearchResult } from '@/lib/types/search';
 import { repository } from '@welshman/app';
-import { load, request } from '@welshman/net';
+import { request } from '@welshman/net';
 import { Router } from '@welshman/router';
 import type { StampedEvent } from '@welshman/util';
 import { COMMENT, Filter, LONG_FORM, NOTE } from '@welshman/util';
 import { Platform } from 'react-native';
+import { debugEventInRepository } from './commentUtils';
 
 export interface ContentSearchOptions {
   term: string;
@@ -39,7 +40,6 @@ export const searchContentWithReactions = async (options: ContentSearchOptions):
   } else {
     localEvents = repository.query([contentFilter]);
   }
-
   // Apply pagination directly to the original dataset
   const startIndex = isLoadMore ? offset : 0;
   const endIndex = startIndex + limit;
@@ -47,7 +47,6 @@ export const searchContentWithReactions = async (options: ContentSearchOptions):
 
   const startTime = Date.now();
 
-  // 🆕 Batch reaction filter (kind 7) using multiple '#e' tags
   const allEventIds = eventsToProcess.map(e => e.id);
   const reactionBatchFilter: Filter = {
     kinds: [7],
@@ -55,9 +54,20 @@ export const searchContentWithReactions = async (options: ContentSearchOptions):
   };
 
   if (Platform.OS === 'web') {
-    await load({
+    await request({
       filters: [reactionBatchFilter],
       relays: Router.get().Index().getUrls(),
+      autoClose: true,
+      threshold: 0.1,
+      onEvent: (event, url) => {
+        console.log(`[CONTENT-SEARCH] Reaction event loaded from relay: ${url}`, event.id)
+      },
+      onEose: (url) => {
+        //console.log(`EOSE from ${url}`)
+      },
+      onDisconnect: (url) => {
+        //console.log(`Disconnected from ${url}`)
+      }
     });
   } else {
     await request({
@@ -66,7 +76,7 @@ export const searchContentWithReactions = async (options: ContentSearchOptions):
       autoClose: true,
       threshold: 0.1,
       onEvent: (event, url) => {
-        console.log(`Reaction event from ${url}:`, event.id)
+        console.log(`[CONTENT-SEARCH] Reaction event loaded from relay: ${url}`, event.id)
       },
       onEose: (url) => {
         //console.log(`EOSE from ${url}`)
@@ -79,7 +89,7 @@ export const searchContentWithReactions = async (options: ContentSearchOptions):
 
   const allReactions = repository.query([reactionBatchFilter]);
 
-  // 🗺️ Map: eventId -> list of reactions
+  // eventId -> list of reactions
   const reactionMap = new Map<string, StampedEvent[]>();
   for (const reaction of allReactions) {
     const targetId = reaction.tags.find(tag => tag[0] === 'e')?.[1];
@@ -91,8 +101,8 @@ export const searchContentWithReactions = async (options: ContentSearchOptions):
     }
   }
 
-  // Process events and apply quality filtering
-  const processedEvents = [];
+  // Process events with proper async comment counting
+  const processedEvents: any[] = [];
 
   for (const event of eventsToProcess) {
     const reactions = reactionMap.get(event.id) || [];
@@ -107,14 +117,22 @@ export const searchContentWithReactions = async (options: ContentSearchOptions):
              content === 'love';
     }).length;
 
-    const replyCount = reactions.filter(reaction => {
-      const content = reaction.content?.toLowerCase() || '';
-      return content === '' ||
-             content === '💬' ||
-             content === 'reply' ||
-             content === 'comment' ||
-             content === '💭';
-    }).length;
+    // Get comment count from local repository only (no relay loading during search)
+    console.log(`[CONTENT-SEARCH] Processing event: ${event.id}`);
+
+    // Debug the first few events to see what's in the repository
+    if (eventsToProcess.indexOf(event) < 3) {
+      debugEventInRepository(event.id);
+    }
+
+    // Use local repository only for comment count to avoid blocking search
+    const commentFilter: Filter = {
+      kinds: [NOTE],
+      '#e': [event.id],
+    };
+    const localComments = repository.query([commentFilter]);
+    const replyCount = localComments.filter(comment => comment.id !== event.id).length;
+    console.log(`[CONTENT-SEARCH] Event ${event.id} has ${replyCount} local comments`);
 
     const repostCount = reactions.filter(reaction => {
       const content = reaction.content?.toLowerCase() || '';
@@ -124,16 +142,6 @@ export const searchContentWithReactions = async (options: ContentSearchOptions):
              content === 'share' ||
              content === '📤';
     }).length;
-
-    // Debug logging for reaction detection
-    if (reactions.length > 0) {
-      console.log(`[CONTENT-SEARCH] Event ${event.id.substring(0, 8)}... has ${reactions.length} reactions:`, {
-        likeCount,
-        replyCount,
-        repostCount,
-        sampleReactions: reactions.slice(0, 3).map(r => r.content)
-      });
-    }
 
     // Quality filtering for content
     const contentLength = event.content?.length || 0;
@@ -153,7 +161,7 @@ export const searchContentWithReactions = async (options: ContentSearchOptions):
         1.0
       );
 
-      // Use quality score as the main score since we removed fuzzy search
+      //where fuzzy search weighting would go
       const combinedScore = qualityScore;
 
       processedEvents.push({
@@ -191,11 +199,6 @@ export const searchContentWithReactions = async (options: ContentSearchOptions):
   }
 
   const endTime = Date.now();
-  const durationMs = endTime - startTime;
-  console.info(`⏱️ Reaction fetch & processing took ${durationMs} ms for ${eventsToProcess.length} events`);
-  console.info(`Average: ${(durationMs / eventsToProcess.length).toFixed(2)} ms per event`);
-  console.info(`Quality filtering: ${eventsToProcess.length} → ${topEvents.length} events`);
-  console.info(`🔍 Content search processed ${localEvents.length} events, found ${eventsToProcess.length} for current page`);
 
   const newOffset = isLoadMore ? offset + limit : limit;
 
@@ -206,6 +209,32 @@ export const searchContentWithReactions = async (options: ContentSearchOptions):
     results: newContentResults,
     newOffset
   };
+};
+
+/**
+ * Load comments for all content results in background
+ * This is called after search results are displayed to improve UX
+ * @param results - Array of search results to load comments for
+ */
+export const loadCommentsForSearchResults = async (results: SearchResult[]): Promise<void> => {
+  try {
+    // Extract event IDs from content results
+    const contentEventIds = results
+      .filter(result => result.type === 'content')
+      .map(result => result.event.id);
+
+    if (contentEventIds.length === 0) return;
+
+    console.log(`[CONTENT-SEARCH] Loading comments for ${contentEventIds.length} content results in background`);
+
+    const { loadCommentCountsFromRelays } = await import('./commentUtils');
+
+    await loadCommentCountsFromRelays(contentEventIds);
+
+    console.log(`[CONTENT-SEARCH] Background comment loading completed for ${contentEventIds.length} events`);
+  } catch (error) {
+    console.error('[CONTENT-SEARCH] Error loading comments for search results:', error);
+  }
 };
 
 /**
@@ -221,14 +250,26 @@ export const loadContentFromRelays = async (term: string) => {
 
     // Load more content from relays
     const searchRelays = Router.get().Search().getUrls();
+    console.log(`[CONTENT-SEARCH] Loading content from relays:`, searchRelays);
     const indexRelays = Router.get().Index().getUrls();
     const relaysToUse = searchRelays.length > 0 ? searchRelays : indexRelays;
 
 
     if (Platform.OS === 'web') {
-      const contentLoad = await load({
+      await request({
         filters: [contentFilter],
         relays: relaysToUse,
+        autoClose: true,
+        threshold: 0.1,
+        onEvent: (event, url) => {
+          // console.log(`[CONTENT-SEARCH] Content event loaded from relay: ${url}`, event.id)
+        },
+        onEose: (url) => {
+          //console.log(`EOSE from ${url}`)
+        },
+        onDisconnect: (url) => {
+          //console.log(`Disconnected from ${url}`)
+        }
       });
     } else {
       const _ = await request({
@@ -237,7 +278,7 @@ export const loadContentFromRelays = async (term: string) => {
         autoClose: true,
         threshold: 0.1,
         onEvent: (event, url) => {
-          // console.log(`Content event from ${url}:`, event.id)
+          console.log(`[CONTENT-SEARCH] Content event loaded from relay: ${url}`, event.id)
         },
         onEose: (url) => {
           //console.log(`EOSE from ${url}`)

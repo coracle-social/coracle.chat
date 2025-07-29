@@ -1,6 +1,6 @@
 import { SearchResult } from '@/lib/types/search';
-import { searchContentWithReactions } from '@/lib/utils/contentSearch';
-import { searchProfilesWithWeighting } from '@/lib/utils/profileSearch';
+import { loadCommentsForSearchResults, searchContentWithReactions } from '@/lib/utils/contentSearch';
+import { isProfileLink, searchProfileByLink, searchProfilesWithWeighting } from '@/lib/utils/profileSearch';
 import { useStore } from '@/stores/useWelshmanStore2';
 import { profileSearch } from '@welshman/app';
 import { useEffect, useState } from 'react';
@@ -38,7 +38,7 @@ export const useDefaultSearch = (): UseDefaultSearchReturn => {
 
   const [profileSearchStore] = useStore(profileSearch);
 
-  // Debounced search
+  // Debounced search with profile link detection
   useEffect(() => {
     if (searchTerm.length < 2) {
       setProfileResults([]);
@@ -53,8 +53,29 @@ export const useDefaultSearch = (): UseDefaultSearchReturn => {
     setProfileOffset(0);
     setContentOffset(0);
 
-    const timeoutId = setTimeout(() => performSearch(searchTerm), 300);
-    return () => clearTimeout(timeoutId);
+    // Check if the search term looks like a profile link
+    if (isProfileLink(searchTerm)) {
+      console.log('[DEFAULT-SEARCH] Profile link detected:', searchTerm);
+
+      // Use the new profile search by link
+      searchProfileByLink(searchTerm).then(profileResult => {
+        if (profileResult) {
+          setProfileResults([profileResult]);
+          setContentResults([]);
+          setIsSearching(false);
+        } else {
+          // If profile not found, perform regular search
+          performSearch(searchTerm);
+        }
+      }).catch(error => {
+        console.error('[DEFAULT-SEARCH] Error searching profile by link:', error);
+        // Fallback to regular search
+        performSearch(searchTerm);
+      });
+    } else {
+      // Perform regular search
+      performSearch(searchTerm);
+    }
   }, [searchTerm, selectedFilters]);
 
   const performSearch = async (term: string, isLoadMore = false) => {
@@ -62,7 +83,6 @@ export const useDefaultSearch = (): UseDefaultSearchReturn => {
       const newProfileResults: SearchResult[] = [];
       const newContentResults: SearchResult[] = [];
 
-      // Search profiles with weighted field scoring
       if (selectedFilters.includes('people')) {
         const profileSearchResult = await searchProfilesWithWeighting({
           term,
@@ -81,7 +101,6 @@ export const useDefaultSearch = (): UseDefaultSearchReturn => {
         }
       }
 
-      // Search content with reactions
       if (selectedFilters.includes('content')) {
         const contentSearchResult = await searchContentWithReactions({
           term,
@@ -114,6 +133,14 @@ export const useDefaultSearch = (): UseDefaultSearchReturn => {
         setProfileResults(newProfileResults);
         setContentResults(newContentResults);
       }
+
+      // Load comment counts in background after search results are displayed
+      if (newContentResults.length > 0) {
+        // Don't await this - let it run in background
+        loadCommentsForSearchResults(newContentResults).catch(error => {
+          console.error('[DEFAULT-SEARCH] Background comment loading failed:', error);
+        });
+      }
     } catch (error) {
       console.error('🔍 Search error:', error);
     } finally {
@@ -123,13 +150,12 @@ export const useDefaultSearch = (): UseDefaultSearchReturn => {
   };
 
   const loadMoreResults = async () => {
-    if (isLoadingMore || isSearching || searchTerm.length < 2) return;
+    if (isLoadingMore || isSearching) return;
     setIsLoadingMore(true);
     await performSearch(searchTerm, true);
   };
 
   return {
-    // State
     searchTerm,
     profileResults,
     contentResults,
@@ -139,8 +165,6 @@ export const useDefaultSearch = (): UseDefaultSearchReturn => {
     selectedSort,
     profileOffset,
     contentOffset,
-
-    // Actions
     setSearchTerm,
     setSelectedFilters,
     setSelectedSort,

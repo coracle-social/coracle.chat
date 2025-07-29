@@ -1,8 +1,9 @@
 import { LoadingStates } from '@/components/generalUI/LoadingStates';
 import { ContentResultCard } from '@/components/search/ContentResultCard';
 import { ProfileResultCard } from '@/components/search/ProfileResultCard';
+import { useLazyCommentCounts } from '@/lib/hooks/useLazyCommentCounts';
 import { SearchResult } from '@/lib/types/search';
-import React, { useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
 interface SearchResultsListProps {
@@ -24,6 +25,20 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = ({
 }) => {
   const internalScrollViewRef = useRef<ScrollView>(null);
   const scrollViewRef = externalScrollViewRef || internalScrollViewRef;
+
+  // Extract event IDs from content results for lazy comment loading
+  const contentEventIds = useMemo(() => {
+    return searchResults
+      .filter(result => result.type === 'content')
+      .map(result => result.event.id);
+  }, [searchResults]);
+
+  // Use lazy comment counts for all content results
+  useLazyCommentCounts({
+    eventIds: contentEventIds,
+    enabled: searchResults.length > 0 && !isSearching,
+    loadFromRelays: true
+  });
 
   const renderResult = (result: SearchResult) => {
     if (result.type === 'profile') {

@@ -1,3 +1,4 @@
+import { SearchResult } from '@/lib/types/search';
 import { getFollowerCount, getFollowingCount, isFollowing } from '@/lib/utils/followUtils';
 import { repository } from '@welshman/app';
 import { load, request } from '@welshman/net';
@@ -5,31 +6,6 @@ import { Router } from '@welshman/router';
 import { COMMENT, Filter, FOLLOWS, LONG_FORM, NOTE, REACTION } from '@welshman/util';
 import { Platform } from 'react-native';
 
-//have heard of bad actors having nip05, not sure how to better define verification unless its wot
-//probably shouldnt be verified, but maybe we can use it to filter out bad actors
-export const checkVerification = (profile: any) => {
-  const verificationTypes = {
-    nip05: !!profile.nip05, // Domain verification
-    lud06: !!profile.lud06, // Lightning address
-    lud16: !!profile.lud16, // Lightning address
-    website: !!profile.website, // Website verification
-    // Note: nip23, nip26, nip46 may not be standard profile fields
-    // but we'll check if they exist
-    nip23: !!(profile as any).nip23, // Nostr address
-    nip26: !!(profile as any).nip26, // Delegated event signing
-    nip46: !!(profile as any).nip46, // Nostr Connect
-  };
-
-  const hasAnyVerification = Object.values(verificationTypes).some(Boolean);
-  const verificationCount = Object.values(verificationTypes).filter(Boolean).length;
-
-  return {
-    isVerified: hasAnyVerification,
-    verificationCount,
-    verificationTypes,
-    verificationScore: verificationCount * 0.5, // Weighted score
-  };
-};
 
 /**
  * Get the most recent activity timestamp for a profile
@@ -48,7 +24,6 @@ export const getRecentActivityTimestamp = async (pubkey: string): Promise<number
     let recentEvents = repository.query([activityFilter]);
 
     if (recentEvents.length === 0) {
-      console.log('[ACTIVITY] No local activity data, loading from relays for:', pubkey);
 
       if (Platform.OS === 'web') {
         await load({
@@ -70,7 +45,7 @@ export const getRecentActivityTimestamp = async (pubkey: string): Promise<number
     if (recentEvents.length > 0) {
       // Sort by created_at and get the most recent
       const mostRecentEvent = recentEvents.sort((a, b) => b.created_at - a.created_at)[0];
-      console.log(`[ACTIVITY] Most recent activity for ${pubkey.substring(0, 8)}...: ${mostRecentEvent.kind} at ${mostRecentEvent.created_at}`);
+      // console.log(`[ACTIVITY] Most recent activity for ${pubkey.substring(0, 8)}...: ${mostRecentEvent.kind} at ${mostRecentEvent.created_at}`);
       return mostRecentEvent.created_at;
     }
 
@@ -86,7 +61,6 @@ export const getRecentActivityTimestamp = async (pubkey: string): Promise<number
  */
 export const getProfileData = async (pubkey: string, profile: any) => {
   try {
-    const verification = checkVerification(profile);
 
     const followerCount = getFollowerCount(pubkey);
     const followingCount = getFollowingCount(pubkey);
@@ -95,7 +69,6 @@ export const getProfileData = async (pubkey: string, profile: any) => {
     const recentActivityTimestamp = await getRecentActivityTimestamp(pubkey);
 
     return {
-      verification,
       followerCount,
       followingCount,
       isUserFollowing,
@@ -187,5 +160,143 @@ export const loadActivityDataFromRelays = async (pubkeys: string[]) => {
     }
   } catch (error) {
     console.error('[PROFILE-LOADING] Error loading activity data from relays:', error);
+  }
+};
+
+/**
+ * Load a profile by pubkey and return it as a SearchResult
+ * This function can be used to load a profile when a valid profile link is detected
+ */
+export const loadProfileByPubkey = async (pubkey: string, relays?: string[]): Promise<SearchResult | null> => {
+  try {
+    console.log('[PROFILE-LOADING] Loading profile by pubkey:', pubkey.substring(0, 8) + '...');
+
+    // First check repository for existing profile
+    const profileFilter = { kinds: [0], authors: [pubkey] };
+    let localEvents = repository.query([profileFilter]);
+
+    console.log('[PROFILE-LOADING] Local events found:', localEvents.length);
+
+    if (localEvents.length > 0) {
+      const event = localEvents[0];
+      const profile = JSON.parse(event.content || '{}');
+      console.log('[PROFILE-LOADING] Found local profile:', profile.name || profile.display_name || 'Loading...');
+      const profileDataResult = await getProfileData(event.pubkey, profile);
+
+      return {
+        id: `profile-${event.pubkey}`,
+        type: 'profile',
+        metadata: {
+          timestamp: event.created_at,
+          author: profile.name || profile.display_name,
+          authorPubkey: event.pubkey,
+          followerCount: profileDataResult.followerCount,
+          followingCount: profileDataResult.followingCount,
+          isFollowing: profileDataResult.isUserFollowing,
+          recentActivityTimestamp: profileDataResult.recentActivityTimestamp || undefined,
+        },
+        event: {
+          id: event.id,
+          pubkey: event.pubkey,
+          created_at: event.created_at,
+          kind: event.kind,
+          tags: event.tags,
+          content: event.content,
+          sig: event.sig,
+          // Profile fields
+          name: profile.name || '',
+          display_name: profile.display_name || '',
+          picture: profile.picture || '',
+          about: profile.about || '',
+          website: profile.website || '',
+          lud06: profile.lud06 || '',
+          lud16: profile.lud16 || '',
+          nip05: profile.nip05 || '',
+          // Banner image fields
+          banner: profile.banner || '',
+          cover_image: profile.cover_image || '',
+          cover: profile.cover || '',
+          header_image: profile.header_image || '',
+        },
+        description: profile.about || '',
+        imageUrl: profile.picture || '',
+      };
+    }
+
+    // If not found locally, load from relays
+    const searchRelays = Router.get().Search().getUrls();
+    const indexRelays = Router.get().Index().getUrls();
+    const defaultRelays = Router.get().Default().getUrls();
+
+    const relaysToUse = relays || [
+      ...(searchRelays.length > 0 ? searchRelays.slice(0, 3) : []),
+      ...(indexRelays.length > 0 ? indexRelays.slice(0, 3) : []),
+      ...(defaultRelays.length > 0 ? defaultRelays.slice(0, 3) : [])
+    ];
+
+    // Remove duplicates and limit to reasonable number
+    const uniqueRelays = [...new Set(relaysToUse)].slice(0, 6);
+
+    console.log('[PROFILE-LOADING] Loading from relays:', uniqueRelays);
+
+    const profileEvents = await load({
+      relays: uniqueRelays,
+      filters: [{ kinds: [0], authors: [pubkey] }],
+    }) as any[];
+
+    console.log('[PROFILE-LOADING] Relay events found:', profileEvents?.length || 0);
+
+    if (profileEvents && profileEvents.length > 0) {
+      const event = profileEvents[0];
+      const profile = JSON.parse(event.content || '{}');
+      console.log('[PROFILE-LOADING] Found relay profile:', profile.name || profile.display_name || 'Loading...');
+      const profileDataResult = await getProfileData(event.pubkey, profile);
+
+      return {
+        id: `profile-${event.pubkey}`,
+        type: 'profile',
+        metadata: {
+          timestamp: event.created_at,
+          author: profile.name || profile.display_name,
+          authorPubkey: event.pubkey,
+          followerCount: profileDataResult.followerCount,
+          followingCount: profileDataResult.followingCount,
+          isFollowing: profileDataResult.isUserFollowing,
+          recentActivityTimestamp: profileDataResult.recentActivityTimestamp || undefined,
+        },
+        event: {
+          id: event.id,
+          pubkey: event.pubkey,
+          created_at: event.created_at,
+          kind: event.kind,
+          tags: event.tags,
+          content: event.content,
+          sig: event.sig,
+          // Profile fields
+          name: profile.name || '',
+          display_name: profile.display_name || '',
+          picture: profile.picture || '',
+          about: profile.about || '',
+          website: profile.website || '',
+          lud06: profile.lud06 || '',
+          lud16: profile.lud16 || '',
+          nip05: profile.nip05 || '',
+          // Banner image fields
+          banner: profile.banner || '',
+          cover_image: profile.cover_image || '',
+          cover: profile.cover || '',
+          header_image: profile.header_image || '',
+        },
+        description: profile.about || '',
+        imageUrl: profile.picture || '',
+      };
+    }
+
+    console.warn('[PROFILE-LOADING] Profile not found:', pubkey.substring(0, 8) + '...');
+    console.log('[PROFILE-LOADING] Tried relays:', uniqueRelays);
+    return null;
+  } catch (error) {
+    console.error('[PROFILE-LOADING] Error loading profile by pubkey:', error);
+    return null;
   }
 };

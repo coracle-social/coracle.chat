@@ -41,6 +41,7 @@ export const getDnsPrefetchLinks = () => {
 };
 
 // Public relays for profile loading and fallback
+
 export const PUBLIC_RELAYS = [
   'wss://relay.damus.io',
   'wss://nos.lol',
