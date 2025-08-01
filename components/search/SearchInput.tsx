@@ -1,6 +1,5 @@
-import Colors from '@/core/env/Colors';
 import { spacing } from '@/core/env/Spacing';
-import { useTheme } from '@/lib/theme/ThemeContext';
+import { useThemeColors } from '@/lib/theme/ThemeContext';
 import { Text } from '@/lib/theme/Themed';
 import React from 'react';
 import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
@@ -20,15 +19,12 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   value,
   onChangeText,
   placeholder = "Search...",
-  isSearching = false,
   onClear,
   autoFocus = false,
   autoCapitalize = 'none',
   autoCorrect = false,
 }) => {
-  const { isDark } = useTheme();
-  const colorScheme = isDark ? 'dark' : 'light';
-  const colors = Colors[colorScheme];
+  const colors = useThemeColors();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surface }]}>

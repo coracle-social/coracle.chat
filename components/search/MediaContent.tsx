@@ -1,8 +1,11 @@
-import Colors from '@/core/env/Colors';
+import { ComponentStyles } from '@/core/env/ComponentStyles';
+import { LayoutPresets } from '@/core/env/LayoutPresets';
 import { spacing } from '@/core/env/Spacing';
+import { CloseButton } from '@/lib/components/CloseButton';
 import VStack from '@/lib/components/VStack';
 import { useImageSizing } from '@/lib/hooks/useImageSizing';
-import { useTheme } from '@/lib/theme/ThemeContext';
+import { useUserPreferences } from '@/lib/hooks/useUserPreferences';
+import { useThemeColors } from '@/lib/theme/ThemeContext';
 import { Text } from '@/lib/theme/Themed';
 import { isVideoUrl } from '@/lib/utils/contentParser';
 import {
@@ -11,9 +14,51 @@ import {
   getResizeMode,
   ImageSizingConfig,
   ImageSizingPresets
-} from '@/lib/utils/imageSizing';
+} from '@/lib/utils/imageHandling';
+import { withBorderRadius, withShadow } from '@/lib/utils/styleUtils';
 import React, { useState } from 'react';
 import { Dimensions, FlatList, Image, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+
+// Separate ImageModal component to prevent re-render issues
+const ImageModal = React.memo(({
+  selectedImage,
+  onClose
+}: {
+  selectedImage: string | null;
+  onClose: () => void;
+}) => {
+  if (!selectedImage) return null;
+
+  return (
+    <Modal
+      visible={true}
+      transparent={true}
+      animationType="fade"
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalHeader}>
+          <CloseButton
+            onPress={onClose}
+            position="absolute"
+            size="medium"
+          />
+        </View>
+
+        <ScrollView
+          style={styles.modalContent}
+          contentContainerStyle={styles.modalContentContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          <Image
+            source={{ uri: selectedImage }}
+            style={styles.fullSizeImage}
+            resizeMode="contain"
+          />
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+});
 
 interface MediaContentProps {
   mediaUrls: string[];
@@ -34,13 +79,13 @@ export const MediaContent: React.FC<MediaContentProps> = ({
   containerHeight,
   isInPopup = false,
 }) => {
-  const { isDark } = useTheme();
+  const colors = useThemeColors();
   const { currentStrategy } = useImageSizing();
-  const colorScheme = isDark ? 'dark' : 'light';
-  const colors = Colors[colorScheme];
+  const { urlPreviews } = useUserPreferences();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [imageLoadErrors, setImageLoadErrors] = useState<Set<string>>(new Set());
   const [imageDimensions, setImageDimensions] = useState<Map<string, { width: number; height: number }>>(new Map());
+  const [showAllLinks, setShowAllLinks] = useState(false);
 
   // Safety check for undefined arrays
   const safeMediaUrls = mediaUrls || [];
@@ -57,12 +102,14 @@ export const MediaContent: React.FC<MediaContentProps> = ({
   const limitedWebsiteUrls = safeWebsiteUrls.slice(0, linkLimit);
 
   const handleImagePress = (url: string) => {
-    if (onMediaPress) {
-      onMediaPress(url);
-    } else {
-      setSelectedImage(url);
-    }
+    setSelectedImage(url);
   };
+
+  const handleCloseModal = () => {
+    setSelectedImage(null);
+  };
+
+
 
   const handleImageError = (url: string) => {
     setImageLoadErrors(prev => new Set(prev).add(url));
@@ -95,39 +142,7 @@ export const MediaContent: React.FC<MediaContentProps> = ({
     return sizingStrategy;
   };
 
-  //to be continued
-  const renderUrlOnly = (url: string, index: number) => {
-    const domain = url.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
-    const isVideo = isVideoUrl(url);
-
-    return (
-      <TouchableOpacity
-        key={`url-${index}`}
-        style={[styles.urlPreview, { backgroundColor: colors.surface, borderColor: colors.border }]}
-        onPress={() => onMediaPress?.(url)}
-        activeOpacity={0.8}
-      >
-        <View style={styles.urlIcon}>
-          <Text style={[styles.urlIconText, { color: colors.primary }]}>
-            {isVideo ? '🎥' : '🖼️'}
-          </Text>
-        </View>
-        <View style={styles.urlInfo}>
-          <Text style={[styles.urlDomain, { color: colors.text }]} numberOfLines={1}>
-            {domain}
-          </Text>
-          <Text style={[styles.urlText, { color: colors.placeholder }]} numberOfLines={1}>
-            {url}
-          </Text>
-        </View>
-        <View style={styles.urlArrow}>
-          <Text style={[styles.arrowIcon, { color: colors.placeholder }]}>→</Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderCompactUrlOnly = (url: string, index: number) => {
+  const renderCompactUrl = (url: string, index: number) => {
     const domain = url.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
     const isVideo = isVideoUrl(url);
 
@@ -135,7 +150,7 @@ export const MediaContent: React.FC<MediaContentProps> = ({
       <TouchableOpacity
         key={`compact-url-${index}`}
         style={[styles.compactUrlPreview, { backgroundColor: colors.surface, borderColor: colors.border }]}
-        onPress={() => onMediaPress?.(url)}
+        onPress={() => setSelectedImage(url)}
         activeOpacity={0.8}
       >
         <View style={styles.compactUrlIcon}>
@@ -152,16 +167,19 @@ export const MediaContent: React.FC<MediaContentProps> = ({
 
   const renderWebsitePreview = (url: string, index: number) => {
     const domain = url.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+    const isMedia = isVideoUrl(url) || /\.(jpg|jpeg|png|gif|webp|mp4|mov|avi|mkv)$/i.test(url);
 
     return (
       <TouchableOpacity
         key={`website-${index}`}
         style={[styles.websitePreview, { backgroundColor: colors.surface, borderColor: colors.border }]}
-        onPress={() => onMediaPress?.(url)}
+        onPress={() => isMedia ? setSelectedImage(url) : onMediaPress?.(url)}
         activeOpacity={0.8}
       >
         <View style={styles.websiteIcon}>
-          <Text style={[styles.websiteIconText, { color: colors.primary }]}>🌐</Text>
+          <Text style={[styles.websiteIconText, { color: colors.primary }]}>
+            {isMedia ? (isVideoUrl(url) ? '🎥' : '🖼️') : '🌐'}
+          </Text>
         </View>
         <View style={styles.websiteInfo}>
           <Text style={[styles.websiteDomain, { color: colors.text }]} numberOfLines={1}>
@@ -187,7 +205,7 @@ export const MediaContent: React.FC<MediaContentProps> = ({
 
     // If no-images mode is active, render compact URL only
     if (sizingConfig === 'no-images') {
-      return renderCompactUrlOnly(url, index);
+      return renderCompactUrl(url, index);
     }
 
     const imageDim = imageDimensions.get(url);
@@ -246,46 +264,13 @@ export const MediaContent: React.FC<MediaContentProps> = ({
     );
   };
 
-  const ImageModal = () => (
-    <Modal
-      visible={!!selectedImage}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={() => setSelectedImage(null)}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalHeader}>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => setSelectedImage(null)}
-          >
-            <Text style={[styles.closeButtonText, { color: colors.text }]}>✕</Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView
-          style={styles.modalContent}
-          contentContainerStyle={styles.modalContentContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          {selectedImage && (
-            <Image
-              source={{ uri: selectedImage }}
-              style={styles.fullSizeImage}
-              resizeMode="contain"
-            />
-          )}
-        </ScrollView>
-      </View>
-    </Modal>
-  );
-
   if (safeMediaUrls.length === 0 && safeWebsiteUrls.length === 0) {
     return null;
   }
 
   return (
-    <View style={styles.container}>
+    <>
+      <View style={styles.container}>
       {/* Media Grid */}
       {safeMediaUrls.length > 0 && (
         <View style={styles.mediaGrid}>
@@ -295,7 +280,7 @@ export const MediaContent: React.FC<MediaContentProps> = ({
               data={safeMediaUrls}
               renderItem={({ item, index }) => (
                 <View key={`compact-url-${index}`} style={styles.compactUrlGridItem}>
-                  {renderCompactUrlOnly(item, index)}
+                  {renderCompactUrl(item, index)}
                 </View>
               )}
               keyExtractor={(item, index) => `compact-url-${index}`}
@@ -310,28 +295,53 @@ export const MediaContent: React.FC<MediaContentProps> = ({
         </View>
       )}
 
-      {/* Website Previews - Unlimited Grid for Popup */}
-      {isInPopup && safeWebsiteUrls.length > 0 && (
+      {/* Website Previews - Show All Links Button for Popup */}
+      {isInPopup && safeWebsiteUrls.length > 0 && urlPreviews === 'enabled' && (
         <View style={styles.websiteContainer}>
-          <FlatList
-            data={safeWebsiteUrls}
-            renderItem={({ item, index }) => (
-              <View key={`website-${index}`} style={styles.websiteGridItem}>
-                {renderWebsitePreview(item, index)}
+          {!showAllLinks ? (
+            // Show up to 4 links with "more" indicator
+            <>
+              <View style={styles.websiteGridRegular}>
+                {safeWebsiteUrls.slice(0, 4).map((url, index) => (
+                  <View key={`website-${index}`} style={styles.websiteGridItem}>
+                    {renderWebsitePreview(url, index)}
+                  </View>
+                ))}
               </View>
-            )}
-            keyExtractor={(item, index) => `website-${index}`}
-            numColumns={6}
-            contentContainerStyle={styles.websiteGrid}
-            scrollEnabled={false} // Disable scrolling for the grid
-          />
+              {safeWebsiteUrls.length > 4 && (
+                <TouchableOpacity
+                  style={styles.moreLinksButton}
+                  onPress={() => setShowAllLinks(true)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.moreLinksText, { color: colors.primary }]}>
+                    +{safeWebsiteUrls.length - 4} more links
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </>
+          ) : (
+            // Show all links in grid
+            <FlatList
+              data={safeWebsiteUrls}
+              renderItem={({ item, index }) => (
+                <View key={`website-${index}`} style={styles.websiteGridItem}>
+                  {renderWebsitePreview(item, index)}
+                </View>
+              )}
+              keyExtractor={(item, index) => `website-${index}`}
+              numColumns={4}
+              contentContainerStyle={styles.websiteGrid}
+              scrollEnabled={false} // Disable scrolling for the grid
+            />
+          )}
         </View>
       )}
 
       {/* Website Previews - Limited Grid for Regular Context */}
-      {!isInPopup && limitedWebsiteUrls.length > 0 && (
+      {!isInPopup && limitedWebsiteUrls.length > 0 && urlPreviews === 'enabled' && (
         <View style={styles.websiteContainer}>
-          {Platform.OS === 'web' && limitedWebsiteUrls.length > 2 ? (
+          {Platform.OS === 'web' && limitedWebsiteUrls.length > 0 ? (
             // Two-column grid on web
             <View style={styles.websiteGridRegular}>
               {limitedWebsiteUrls.map((url, index) => (
@@ -356,53 +366,42 @@ export const MediaContent: React.FC<MediaContentProps> = ({
         </View>
       )}
 
-      <ImageModal />
+      {/* Image Modal */}
+      <ImageModal
+        selectedImage={selectedImage}
+        onClose={handleCloseModal}
+      />
     </View>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     marginTop: spacing(3),
+    marginBottom: spacing(1), // Add bottom margin to prevent overlap
   },
   mediaGrid: {
-    flexDirection: 'row',
+    ...LayoutPresets.row,
     flexWrap: 'wrap',
     justifyContent: 'center',
-    alignItems: 'center',
     gap: spacing(2),
     marginBottom: spacing(3),
     maxWidth: '100%',
     overflow: 'hidden',
   },
   imageContainer: {
-    position: 'relative',
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...ComponentStyles.imageContainer,
     maxWidth: '100%', // Prevent images from exceeding container width
   },
   image: {
     width: '100%',
     height: '100%',
-    borderRadius: 12,
+    ...withBorderRadius('md'),
   },
   videoOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...LayoutPresets.absoluteCenter,
     backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   playIcon: {
     fontSize: 24,
@@ -414,10 +413,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing(1), // Add some padding for the grid
   },
   websiteGridRegular: {
-    flexDirection: 'row',
+    ...LayoutPresets.row,
     flexWrap: 'wrap',
     justifyContent: 'center',
-    alignItems: 'center',
     gap: spacing(2),
     marginBottom: spacing(3),
     maxWidth: '100%',
@@ -426,22 +424,10 @@ const styles = StyleSheet.create({
   websiteGridItem: {
     flex: 1,
     margin: spacing(1), // Use margin instead of gap for FlatList
-    maxWidth: '50%', // This ensures 2 columns with FlatList numColumns=2
+    maxWidth: '25%', // This ensures 2 columns with FlatList numColumns=2
   },
   websitePreview: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing(3),
-    borderRadius: 12,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    ...ComponentStyles.websitePreview,
     maxWidth: '100%',
     overflow: 'hidden',
     minHeight: 80,
@@ -449,10 +435,9 @@ const styles = StyleSheet.create({
   websiteIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    ...withBorderRadius('round'),
     backgroundColor: 'rgba(0,0,0,0.05)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    ...LayoutPresets.center,
     marginRight: spacing(3),
     flexShrink: 0,
   },
@@ -486,25 +471,13 @@ const styles = StyleSheet.create({
     right: 20,
     zIndex: 1,
   },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    fontSize: 20,
-    fontWeight: '600',
-  },
+
   modalContent: {
     flex: 1,
   },
   modalContentContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    ...LayoutPresets.center,
     padding: spacing(3),
   },
   fullSizeImage: {
@@ -514,19 +487,11 @@ const styles = StyleSheet.create({
     maxHeight: 600,
   },
   urlPreview: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    ...LayoutPresets.row,
     padding: spacing(3),
-    borderRadius: 12,
+    ...withBorderRadius('md'),
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    ...withShadow('small'),
     marginBottom: spacing(2),
     maxWidth: '100%',
     overflow: 'hidden',
@@ -536,10 +501,9 @@ const styles = StyleSheet.create({
   urlIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    ...withBorderRadius('round'),
     backgroundColor: 'rgba(0,0,0,0.05)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    ...LayoutPresets.center,
     marginRight: spacing(3),
     flexShrink: 0,
   },
@@ -573,20 +537,12 @@ const styles = StyleSheet.create({
     marginTop: spacing(1),
   },
   compactUrlPreview: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    ...LayoutPresets.row,
     paddingVertical: spacing(0.5),
     paddingHorizontal: spacing(1),
-    borderRadius: 6,
+    ...withBorderRadius('xs'),
     borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    ...withShadow('small'),
     maxWidth: '100%',
     overflow: 'hidden',
     minHeight: 28,
@@ -594,10 +550,9 @@ const styles = StyleSheet.create({
   compactUrlIcon: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    ...withBorderRadius('round'),
     backgroundColor: 'rgba(0,0,0,0.05)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    ...LayoutPresets.center,
     marginRight: spacing(1),
     flexShrink: 0,
   },
@@ -616,5 +571,17 @@ const styles = StyleSheet.create({
     flex: 1,
     margin: spacing(1),
     maxWidth: '25%', // 4 columns
+  },
+  moreLinksButton: {
+    alignSelf: 'center',
+    paddingVertical: spacing(1),
+    paddingHorizontal: spacing(3),
+    ...withBorderRadius('md'),
+    borderWidth: 1,
+    borderColor: 'transparent',
+    ...withShadow('medium'),
+    maxWidth: '100%',
+    overflow: 'hidden',
+    minHeight: 40,
   },
 });

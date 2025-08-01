@@ -1,68 +1,70 @@
-export type SearchResultType = 'profile' | 'content' | 'event' | 'group' | 'article';
 
-//fields such as likes won't fill on initial search since those events must be separately found
-//there's probably a better way to group it, rather than adding it later
-//eventualy a looser object for metadata, but for now this is fine
-export interface SearchResultMetadata {
-  timestamp?: number; // Creation timestamp
-  recentActivityTimestamp?: number; // Most recent activity timestamp
-  author?: string;
+export interface BareEvent {
+  event: any; // The raw Nostr event
+  id: string; // Unique identifier
+  type: 'profile' | 'content';
+  // Minimal metadata that's actually needed
   authorPubkey?: string;
-  tags?: string[];
   verified?: boolean;
-  trustScore?: number; // Optional: used for WoT search results with legitimate trust scores
-  viewCount?: number;
-  likeCount?: number;
-  replyCount?: number;
-  repostCount?: number;
-  reactions?: Record<string, number>;
   followerCount?: number;
   followingCount?: number;
   isFollowing?: boolean;
-  searchScore?: number; // Score from fuzzy search with weighted fields
-  qualityScore?: number; // Quality score based on followers, following, verification
-
-  // Web of Trust (WoT) fields
-  wotScore?: number; // Raw WoT score
-  trustLevel?: 'high' | 'medium' | 'low' | 'negative'; // Trust level classification
-  networkDistance?: number; // How many hops away in the network
-  contextualScore?: number; // Contextual score based on user's network
+  // Content-specific fields (optional)
+  emojiCount?: number; // Total emoji reaction count
+  replyCount?: number;
+  // WoT-specific fields (optional)
+  wotScore?: number;
+  trustLevel?: 'high' | 'medium' | 'low' | 'negative';
+  networkDistance?: number;
 }
 
-export interface SearchResult {
-  id: string;
-  type: SearchResultType;
-  title?: string;
-  subtitle?: string;
-  description?: string;
-  imageUrl?: string; //placeholder since we aren't actually querying images yet
-  metadata: SearchResultMetadata;
-  //raw event data for components to handle, may change so that components only receive event
-  event: any;
-  relays?: string[]; // Relays used to find this content
+/**
+ * WoT search options interface
+ */
+export interface WotSearchOptions {
+  minScore?: number;
+  maxScore?: number;
+  trustLevels?: ('high' | 'medium' | 'low' | 'negative')[];
+  networkDistance?: number;
+  hasProfile?: boolean;
+  hasNip05?: boolean;
+  recentActivity?: boolean;
+  limit?: number;
 }
 
-export interface SearchTab {
-  id: string;
-  label: string;
-  icon?: string;
-  count?: number;
-  badge?: string;
-  type?: SearchResultType;
+/**
+ * Options for profile search operations
+ */
+export interface ProfileSearchOptions {
+  term: string;
+  isLoadMore?: boolean;
+  offset?: number;
+  limit?: number;
+  profileSearchStore?: any;
 }
 
-export interface SortOption {
-  id: string;
-  label: string;
-  icon?: string;
-  field: 'relevance' | 'date' | 'popularity' | 'trust' | 'name';
-  direction: 'asc' | 'desc';
+/**
+ * Result of a profile search operation
+ */
+export interface ProfileSearchResult {
+  results: BareEvent[]; // Changed from SearchResult[] to BareEvent[]
+  newOffset: number;
 }
-//placeholder icons, may use a checkbox instead
-export interface FilterOption {
-  id: string;
-  label: string;
-  type: 'checkbox' | 'radio' | 'range' | 'select';
-  value: any;
-  options?: { label: string; value: any }[];
+
+/**
+ * Options for content search operations
+ */
+export interface ContentSearchOptions {
+  term: string;
+  isLoadMore?: boolean;
+  offset?: number;
+  limit?: number;
+}
+
+/**
+ * Result of a content search operation
+ */
+export interface ContentSearchResult {
+  results: BareEvent[];
+  newOffset: number;
 }

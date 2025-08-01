@@ -1,6 +1,8 @@
-import React, { useMemo } from 'react';
-import { View, ScrollView, StyleSheet, Dimensions, Platform } from 'react-native';
 import { Layout } from '@/core/env/Layout';
+import { useThemeColors } from '@/lib/theme/ThemeContext';
+import { View } from '@/lib/theme/Themed';
+import { useMemo } from 'react';
+import { Dimensions, Platform, ScrollView, StyleSheet } from 'react-native';
 
 const screenWidth = Dimensions.get('window').width;
 const maxContainerWidth = 950;
@@ -71,6 +73,7 @@ const findBestColumnGroup = (
 
 export default function ExploreScreen() {
   const items = useMemo(() => generateItems(30), []);
+  const colors = useThemeColors();
 
   // Track heights per column
   const columnHeights = new Array(columnCount).fill(0);
@@ -103,13 +106,18 @@ export default function ExploreScreen() {
   const containerHeight = Math.max(...columnHeights);
 
   return (
-    <View style={[styles.container, Platform.OS === 'web' && Layout.webContainer]}>
+    <View style={[
+      styles.container,
+      { backgroundColor: colors.background },
+      Platform.OS === 'web' && Layout.webContainer
+    ]}>
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
           { height: containerHeight + spacing },
         ]}
         showsVerticalScrollIndicator={false}
+        style={{ backgroundColor: colors.background }}
       >
         {positionedItems.map(({ key, left, top, width, height, backgroundColor }) => (
           <View
@@ -147,4 +155,3 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
 });
-

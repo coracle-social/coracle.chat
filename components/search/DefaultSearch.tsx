@@ -1,7 +1,6 @@
 import { SearchInput } from '@/components/search/SearchInput';
 import { SearchResultsList } from '@/components/search/SearchResultsList';
 import { SearchTabs } from '@/components/search/SearchTabs';
-import { SearchToolbar } from '@/components/search/SearchToolbar';
 import { useDefaultSearch } from '@/lib/hooks/useDefaultSearch';
 import { useSearchResults } from '@/lib/hooks/useSearchResults';
 import React from 'react';
@@ -18,8 +17,8 @@ export const DefaultSearch: React.FC<DefaultSearchProps> = ({
 }) => {
   const {
     searchTerm,
-    profileResults,
-    contentResults,
+    profileEvents,
+    contentEvents,
     isSearching,
     isLoadingMore,
     selectedFilters,
@@ -31,8 +30,8 @@ export const DefaultSearch: React.FC<DefaultSearchProps> = ({
   } = useDefaultSearch();
 
   const { searchResults } = useSearchResults(
-    profileResults,
-    contentResults,
+    profileEvents,
+    contentEvents,
     selectedFilters,
     selectedSort
   );
@@ -91,8 +90,6 @@ export const DefaultSearch: React.FC<DefaultSearchProps> = ({
         isSortDisabled={isSortDisabled}
       />
 
-      <SearchToolbar />
-
       <SearchResultsList
         searchTerm={searchTerm}
         searchResults={searchResults}
@@ -108,6 +105,5 @@ export const DefaultSearch: React.FC<DefaultSearchProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    borderRadius: 12,
   },
 });

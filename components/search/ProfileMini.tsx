@@ -3,7 +3,7 @@ import { spacing } from '@/core/env/Spacing';
 import { useProfileLoading } from '@/lib/hooks/useProfileLoading';
 import { useThemeColors } from '@/lib/theme/ThemeContext';
 import { Text } from '@/lib/theme/Themed';
-import { SearchResult } from '@/lib/types/search';
+import { BareEvent } from '@/lib/types/search';
 import { Avatar } from '@rneui/themed';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
@@ -17,8 +17,8 @@ interface ProfileMiniProps {
   pubkey: string;
   relays?: string[];
   raw: string;
-  onProfilePress?: (profile: SearchResult) => void;
-  profileData?: SearchResult;
+  onProfilePress?: (profile: BareEvent) => void;
+  profileData?: BareEvent;
   inline?: boolean;
 }
 
@@ -40,8 +40,8 @@ export const ProfileMini: React.FC<ProfileMiniProps> = ({
   );
 
   const [showPopup, setShowPopup] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(profileData?.metadata.isFollowing || false);
-  const [localFollowerCount, setLocalFollowerCount] = useState(profileData?.metadata.followerCount || 0);
+  const [isFollowing, setIsFollowing] = useState(profileData?.isFollowing || false);
+  const [localFollowerCount, setLocalFollowerCount] = useState(profileData?.followerCount || 0);
 
   const handlePress = () => {
     if (profileData) {
@@ -56,7 +56,6 @@ export const ProfileMini: React.FC<ProfileMiniProps> = ({
   const displayName =
     profileData?.event.name ||
     profileData?.event.display_name ||
-    profileData?.metadata.author ||
     basicInfo?.name ||
     basicInfo?.displayName ||
     'Loading...';

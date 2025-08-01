@@ -1,3 +1,4 @@
+import { ComponentStyles } from '@/core/env/ComponentStyles';
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { Modal, Platform, Pressable, StyleSheet } from 'react-native';
@@ -49,19 +50,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContainer: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 24,
-    margin: 20,
+    backgroundColor: 'transparent',
+    ...ComponentStyles.modal,
+    margin: 0,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
     minWidth: 300,
     maxWidth: 500,
   },

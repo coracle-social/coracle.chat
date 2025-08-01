@@ -1,18 +1,19 @@
-import { LoadingStates } from '@/components/generalUI/LoadingStates';
-import { ContentResultCard } from '@/components/search/ContentResultCard';
-import { ProfileResultCard } from '@/components/search/ProfileResultCard';
-import { useLazyCommentCounts } from '@/lib/hooks/useLazyCommentCounts';
-import { SearchResult } from '@/lib/types/search';
-import React, { useMemo, useRef } from 'react';
+import { SearchResultCard } from '@/components/search/SearchResultCard';
+import { LoadingStates } from '@/lib/components/LoadingStates';
+import { useStore } from '@/lib/stores/useWelshmanStore2';
+import { BareEvent } from '@/lib/types/search';
+import { pubkey } from '@welshman/app';
+import React, { useRef } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
 interface SearchResultsListProps {
   searchTerm: string;
-  searchResults: SearchResult[];
+  searchResults: BareEvent[];
   isSearching: boolean;
   isLoadingMore: boolean;
   onScroll?: (event: any) => void;
   scrollViewRef?: React.RefObject<ScrollView | null>;
+  isPreferenceSearch?: boolean;
 }
 
 export const SearchResultsList: React.FC<SearchResultsListProps> = ({
@@ -22,40 +23,26 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = ({
   isLoadingMore,
   onScroll,
   scrollViewRef: externalScrollViewRef,
+  isPreferenceSearch = false,
 }) => {
   const internalScrollViewRef = useRef<ScrollView>(null);
   const scrollViewRef = externalScrollViewRef || internalScrollViewRef;
+  const [currentPubkey] = useStore(pubkey);
 
-  // Extract event IDs from content results for lazy comment loading
-  const contentEventIds = useMemo(() => {
-    return searchResults
-      .filter(result => result.type === 'content')
-      .map(result => result.event.id);
-  }, [searchResults]);
+  const renderResult = (result: BareEvent) => {
+    return (
+      <SearchResultCard
+        key={result.id}
+        result={result}
+      />
+    );
+  };
 
-  // Use lazy comment counts for all content results
-  useLazyCommentCounts({
-    eventIds: contentEventIds,
-    enabled: searchResults.length > 0 && !isSearching,
-    loadFromRelays: true
-  });
-
-  const renderResult = (result: SearchResult) => {
-    if (result.type === 'profile') {
-      return (
-        <ProfileResultCard
-          key={result.id}
-          result={result}
-        />
-      );
-    } else {
-      return (
-        <ContentResultCard
-          key={result.id}
-          result={result}
-        />
-      );
+  const getEmptyMessage = () => {
+    if (isPreferenceSearch && !currentPubkey) {
+      return "You must be logged in to use preference search";
     }
+    return `No results found for "${searchTerm}"`;
   };
 
   return (
@@ -72,7 +59,7 @@ export const SearchResultsList: React.FC<SearchResultsListProps> = ({
       ) : isSearching ? (
         <LoadingStates type="searching" />
       ) : searchResults.length === 0 ? (
-        <LoadingStates type="empty" message={`No results found for "${searchTerm}"`} />
+        <LoadingStates type="empty" message={getEmptyMessage()} />
       ) : (
         <>
           {searchResults.map(renderResult)}

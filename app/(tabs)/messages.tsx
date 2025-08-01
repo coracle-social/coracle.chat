@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react';
-import { StyleSheet, View, ScrollView, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableWithoutFeedback } from 'react-native';
 
-import { Text } from '@/lib/theme/Themed';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import MessageEditor, { MessageEditorRef } from '@/components/messages/MessageEditor';
+import { useThemeColors } from '@/lib/theme/ThemeContext';
+import { Text, View } from '@/lib/theme/Themed';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 //to be changed, doesn't show rich text yet
 interface ChatMessage {
@@ -15,6 +16,7 @@ interface ChatMessage {
 export default function MessagesScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const messageEditorRef = useRef<MessageEditorRef>(null);
+  const colors = useThemeColors();
 
   const handleSendMessage = (content: string) => {
     const newMessage: ChatMessage = {
@@ -30,19 +32,19 @@ export default function MessagesScreen() {
   };
 
   const content = (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView
-        style={styles.keyboardAvoidingView}
+        style={[styles.keyboardAvoidingView, { backgroundColor: colors.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {/* Chat History */}
-        <ScrollView style={styles.messagesContainer}>
+        <ScrollView style={[styles.messagesContainer, { backgroundColor: colors.background }]}>
           {messages.map((message) => (
-            <View key={message.id} style={styles.messageBubble}>
-              <Text style={styles.messageText}>
+            <View key={message.id} style={[styles.messageBubble, { backgroundColor: colors.surfaceVariant }]}>
+              <Text style={[styles.messageText, { color: colors.text }]}>
                 {Platform.OS === 'web' ? message.content : message.content.replace(/<[^>]*>/g, '')}
               </Text>
-              <Text style={styles.timestamp}>
+              <Text style={[styles.timestamp, { color: colors.placeholder }]}>
                 {message.timestamp.toLocaleTimeString()}
               </Text>
             </View>
@@ -50,7 +52,7 @@ export default function MessagesScreen() {
         </ScrollView>
 
         {/* Text Input - Platform-specific editor based on .web or .mobile*/}
-        <View style={styles.editorContainer}>
+        <View style={[styles.editorContainer, { borderTopColor: colors.border }]}>
           <MessageEditor ref={messageEditorRef} onSendMessage={handleSendMessage} />
         </View>
       </KeyboardAvoidingView>
@@ -78,7 +80,6 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   messageBubble: {
-    backgroundColor: '#e3f2fd',
     padding: 10,
     marginVertical: 5,
     borderRadius: 10,
@@ -90,12 +91,10 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 12,
-    color: '#666',
     marginTop: 5,
   },
   editorContainer: {
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
     padding: 10,
   },
 });

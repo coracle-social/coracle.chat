@@ -1,12 +1,11 @@
-import React from 'react';
 import { ThemeProvider as RNEUIThemeProvider, createTheme } from '@rneui/themed';
+import React from 'react';
 import { useTheme } from './ThemeContext';
-import Colors from '@/core/env/Colors';
 
 export function RNEUIThemeWrapper({ children }: { children: React.ReactNode }) {
-  const { isDark } = useTheme();
+  const { isDark, getColors } = useTheme();
   const colorScheme = isDark ? 'dark' : 'light';
-  const colors = Colors[colorScheme];
+  const colors = getColors();
 
   const theme = createTheme({
     lightColors: {

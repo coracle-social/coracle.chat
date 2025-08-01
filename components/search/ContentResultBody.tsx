@@ -1,22 +1,25 @@
-import Colors from '@/core/env/Colors';
+import { openUrl } from '@/core/commands/urlCommands';
 import { spacing } from '@/core/env/Spacing';
 import HStack from '@/lib/components/HStack';
 import { useImageSizing } from '@/lib/hooks/useImageSizing';
-import { useTheme } from '@/lib/theme/ThemeContext';
+import { useUserPreferences } from '@/lib/hooks/useUserPreferences';
+import { useThemeColors } from '@/lib/theme/ThemeContext';
 import { Text } from '@/lib/theme/Themed';
-import { SearchResult } from '@/lib/types/search';
+import { BareEvent } from '@/lib/types/search';
+import { extractNostrEntities } from '@/lib/utils/contentEntityRenderer';
 import { extractTitle, parseContent } from '@/lib/utils/contentParser';
-import { ImageSizingPresets } from '@/lib/utils/imageSizing';
-import { parse, ParsedType } from '@welshman/content';
-import * as WebBrowser from 'expo-web-browser';
+import { ImageSizingPresets } from '@/lib/utils/imageHandling';
+
+import { ExternalLink } from '@/lib/components/ExternalLink';
 import React from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { ContentMini } from './ContentMini';
+import { Hashtag } from './Hashtag';
 import { MediaContent } from './MediaContent';
 import { ProfileMini } from './ProfileMini';
 
 interface ContentResultBodyProps {
-  result: SearchResult;
+  result: BareEvent;
   isInPopup?: boolean;
   contentTitle?: string;
   isTextOnly?: boolean;
@@ -30,73 +33,28 @@ export const ContentResultBody: React.FC<ContentResultBodyProps> = ({
   isTextOnly = false,
   isImagesOnly = false,
 }) => {
-  const { isDark } = useTheme();
+  const colors = useThemeColors();
   const { currentStrategy } = useImageSizing();
-  const colorScheme = isDark ? 'dark' : 'light';
-  const colors = Colors[colorScheme];
+  const { postLength } = useUserPreferences();
 
   // Extract content from event
   const content = result.event.content || '';
   const contentText = typeof content === 'string' ? content : '';
 
   // Parse content to extract media and website URLs
-  const parsedContent = parseContent(contentText) || {
-    text: contentText,
-    urls: [],
-    mediaUrls: [],
-    websiteUrls: [],
-    hashtags: []
-  };
+  const parsedContent = parseContent(contentText)
 
-  // Parse content with Welshman parser to extract profiles and events
-  const parsedElements = parse({
-    content: contentText,
-    tags: result.event.tags || []
-  });
-
-  // Extract profiles and events from parsed elements
-  const extractNostrEntities = () => {
-    const profiles = parsedElements
-      .filter(element => element.type === ParsedType.Profile)
-      .map(element => ({
-        pubkey: (element.value as any).pubkey,
-        relays: (element.value as any).relays || [],
-        raw: element.raw
-      }));
-
-    const events = parsedElements
-      .filter(element => element.type === ParsedType.Event)
-      .map(element => ({
-        id: (element.value as any).id,
-        relays: (element.value as any).relays || [],
-        raw: element.raw
-      }));
-
-    return { profiles, events };
-  };
-
-  const { profiles, events } = extractNostrEntities();
-
-  const handleMediaPress = async (url: string) => {
-    try {
-      if (Platform.OS === 'web') {
-        // On web, open in new tab
-        window.open(url, '_blank', 'noopener,noreferrer');
-      } else {
-        // On mobile, open in in-app browser
-        await WebBrowser.openBrowserAsync(url);
-      }
-    } catch (error) {
-      console.error('[CONTENT-BODY] Failed to open link:', error);
-    }
-  };
-
-
+  // Extract Nostr entities using the utility
+  const { profiles, events, hashtags, urls } = extractNostrEntities(
+    contentText,
+    result.event.tags || [],
+    result.authorPubkey
+  );
 
   const renderContentWithEntities = (text: string) => {
     if (!text) return null;
 
-    if (profiles.length === 0 && events.length === 0) {
+    if (profiles.length === 0 && events.length === 0 && hashtags.length === 0 && urls.length === 0) {
       return (
         <Text style={[styles.description, { color: colors.text }]}>
           {text}
@@ -109,10 +67,22 @@ export const ContentResultBody: React.FC<ContentResultBodyProps> = ({
       const elements: React.ReactNode[] = [];
       let elementIndex = 0;
 
-      profiles.forEach(profile => {
-        const index = processedText.indexOf(profile.raw);
+      // Combine all entities (profiles, events, hashtags, URLs) and sort by position
+      const allEntities = [
+        ...profiles.map(profile => ({ ...profile, type: 'profile' as const })),
+        ...events.map(event => ({ ...event, type: 'event' as const })),
+        ...hashtags.map(hashtag => ({ raw: hashtag, type: 'hashtag' as const })),
+        ...urls.map(url => ({ raw: url, type: 'url' as const }))
+      ].sort((a, b) => {
+        const aIndex = processedText.indexOf(a.raw);
+        const bIndex = processedText.indexOf(b.raw);
+        return aIndex - bIndex;
+      });
+
+      allEntities.forEach(entity => {
+        const index = processedText.indexOf(entity.raw);
         if (index !== -1) {
-          // Add text before the profile
+          // Add text before the entity
           if (index > 0) {
             elements.push(
               <Text key={`text-${elementIndex++}`} style={[styles.description, { color: colors.text }]}>
@@ -121,60 +91,51 @@ export const ContentResultBody: React.FC<ContentResultBodyProps> = ({
             );
           }
 
-          elements.push(
-            <ProfileMini
-              key={`profile-${elementIndex++}`}
-              pubkey={profile.pubkey}
-              relays={profile.relays}
-              raw={profile.raw}
-            />
-          );
-
-          processedText = processedText.substring(index + profile.raw.length);
-        }
-      });
-
-      events.forEach(event => {
-        const index = processedText.indexOf(event.raw);
-        if (index !== -1) {
-          // Add text before the event
-          if (index > 0) {
+          // Add the entity
+          if (entity.type === 'profile' && entity.pubkey) {
             elements.push(
-              <Text key={`text-${elementIndex++}`} style={[styles.description, { color: colors.text }]}>
-                {processedText.substring(0, index)}
-              </Text>
+              <ProfileMini
+                key={`profile-${elementIndex++}`}
+                pubkey={entity.pubkey}
+                relays={entity.relays}
+                raw={entity.raw}
+              />
+            );
+          } else if (entity.type === 'event' && entity.id) {
+            elements.push(
+              <ContentMini
+                key={`event-${elementIndex++}`}
+                eventId={entity.id}
+                relays={entity.relays}
+                raw={entity.raw}
+              />
+            );
+          } else if (entity.type === 'hashtag') {
+            elements.push(
+              <Hashtag key={`hashtag-${elementIndex++}`} hashtag={entity.raw} />
+            );
+          } else if (entity.type === 'url') {
+            const domain = entity.raw.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+            elements.push(
+              <ExternalLink
+                key={`url-${elementIndex++}`}
+                href={entity.raw}
+                style={{ color: colors.primary, fontSize: 14, fontWeight: '500', textDecorationLine: 'underline' }}
+              >
+                {domain} →
+              </ExternalLink>
             );
           }
 
-          // Add the event entity using ContentMini
-          elements.push(
-            <ContentMini
-              key={`event-${elementIndex++}`}
-              eventId={event.id}
-              relays={event.relays}
-              raw={event.raw}
-            />
-          );
-
-          // Update processed text to remove the processed part
-          processedText = processedText.substring(index + event.raw.length);
+          processedText = processedText.substring(index + entity.raw.length);
         }
       });
 
-      // Add any remaining text
+      // Add remaining text
       if (processedText.length > 0) {
         elements.push(
           <Text key={`text-${elementIndex++}`} style={[styles.description, { color: colors.text }]}>
             {processedText}
-          </Text>
-        );
-      }
-
-      // If no elements were created, return original text
-      if (elements.length === 0) {
-        return (
-          <Text style={[styles.description, { color: colors.text }]}>
-            {text}
           </Text>
         );
       }
@@ -186,10 +147,6 @@ export const ContentResultBody: React.FC<ContentResultBodyProps> = ({
   };
 
   const shouldUseHorizontalLayout = () => {
-    if (parsedContent.mediaUrls.length !== 2 || parsedContent.websiteUrls.length > 0) {
-      return false;
-    }
-
     // Check if current strategy supports horizontal layout
     // Allow more strategies to use horizontal layout, not just thumbnail and medium
     const supportsHorizontalLayout =
@@ -206,10 +163,14 @@ export const ContentResultBody: React.FC<ContentResultBodyProps> = ({
 
   const useHorizontalLayout = shouldUseHorizontalLayout();
 
-  return (
-    <View style={styles.container}>
-      {useHorizontalLayout && !isTextOnly && !isImagesOnly ? (
-        // Horizontal layout: text on left, image on right using HStack
+  // Determine if we should limit content height based on post length mode
+  const shouldLimitHeight = postLength === 'mini' && !isInPopup;
+  const maxContentHeight = shouldLimitHeight ? 200 : undefined; // 200px max height for mini mode
+
+  const renderContent = () => {
+    if (useHorizontalLayout && !isTextOnly && !isImagesOnly) {
+      // Horizontal layout: text on left, image on right using HStack
+      return (
         <HStack
           spacing={spacing(3)}
           alignment="start"
@@ -231,13 +192,15 @@ export const ContentResultBody: React.FC<ContentResultBodyProps> = ({
             <MediaContent
               mediaUrls={parsedContent.mediaUrls}
               websiteUrls={parsedContent.websiteUrls}
-              onMediaPress={handleMediaPress}
+              onMediaPress={(url) => openUrl(url)}
               isInPopup={isInPopup}
             />
           </View>
         </HStack>
-      ) : (
-        // Vertical layout: text on top, media below
+      );
+    } else {
+      // Vertical layout: text on top, media below
+      return (
         <>
           {/* Only show text content if not images-only mode */}
           {!isImagesOnly && typeof parsedContent.text === 'string' &&
@@ -254,11 +217,26 @@ export const ContentResultBody: React.FC<ContentResultBodyProps> = ({
             <MediaContent
               mediaUrls={parsedContent.mediaUrls}
               websiteUrls={parsedContent.websiteUrls}
-              onMediaPress={handleMediaPress}
+              onMediaPress={(url) => openUrl(url)}
               isInPopup={isInPopup}
             />
           )}
         </>
+      );
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      {shouldLimitHeight ? (
+        <ScrollView
+          style={[styles.scrollableContainer, { maxHeight: maxContentHeight }]}
+          showsVerticalScrollIndicator={false}
+        >
+          {renderContent()}
+        </ScrollView>
+      ) : (
+        renderContent()
       )}
     </View>
   );
@@ -267,6 +245,9 @@ export const ContentResultBody: React.FC<ContentResultBodyProps> = ({
 const styles = StyleSheet.create({
   container: {
     marginBottom: spacing(3),
+  },
+  scrollableContainer: {
+    // Styles for scrollable content container
   },
   textContainer: {
     flex: 1,
@@ -281,12 +262,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'flex-start',
+    marginBottom: spacing(2), // Ensure spacing before actions
   },
   description: {
     fontSize: 15,
     lineHeight: 22,
     opacity: 0.8,
-    marginBottom: spacing(2),
+    marginBottom: spacing(1), // Reduced from spacing(2) since textWrapper has marginBottom
+    flexShrink: 1,
+    minWidth: 0,
   },
 
 });

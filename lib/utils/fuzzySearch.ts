@@ -1,4 +1,4 @@
-import { SearchResult } from '@/lib/types/search';
+import { BareEvent } from '@/lib/types/search';
 import type { FuseResultMatch, IFuseOptions } from 'fuse.js';
 import Fuse from 'fuse.js';
 
@@ -124,10 +124,10 @@ export const fuzzySearchContent = (events: any[], searchTerm: string): any[] => 
  * @param searchTerm - The search term
  * @returns Array of filtered SearchResult objects
  */
-export const fuzzySearchResults = (results: SearchResult[], searchTerm: string): SearchResult[] => {
+export const fuzzySearchResults = (results: BareEvent[], searchTerm: string): BareEvent[] => {
   if (!searchTerm || searchTerm.length < 2) return results;
 
-  const fuseOptions: IFuseOptions<SearchResult> = {
+  const fuseOptions: IFuseOptions<BareEvent> = {
     keys: [
       { name: 'title', weight: 0.5 },
       { name: 'subtitle', weight: 0.3 },

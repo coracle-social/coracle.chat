@@ -1,21 +1,28 @@
-import { PubkeyDisplay } from '@/components/generalUI/PubkeyDisplay';
-import Colors from '@/core/env/Colors';
+import { LayoutPresets } from '@/core/env/LayoutPresets';
+import { PUBLIC_RELAYS } from '@/core/env/MetaConfig';
 import { spacing } from '@/core/env/Spacing';
-import { useTheme } from '@/lib/theme/ThemeContext';
+import { ExternalLink } from '@/lib/components/ExternalLink';
+import { PubkeyDisplay } from '@/lib/components/PubkeyDisplay';
+import { useThemeColors } from '@/lib/theme/ThemeContext';
 import { Text } from '@/lib/theme/Themed';
-import { SearchResult } from '@/lib/types/search';
+import { BareEvent } from '@/lib/types/search';
 import { parseContent } from '@/lib/utils/contentParser';
+import { formatTimestampRelative } from '@/lib/utils/formatNums';
+import { getRecentActivityTimestamp } from '@/lib/utils/profileLoadingUtility';
+import { withBorderRadius } from '@/lib/utils/styleUtils';
 import { Avatar, Button, Divider, Icon, Overlay } from '@rneui/themed';
-import React from 'react';
+import { repository } from '@welshman/app';
+import { load } from '@welshman/net';
+import React, { useEffect, useState } from 'react';
 import { Image, Platform, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { ProfileResultActions } from './ProfileResultActions';
 
 interface ProfilePopupProps {
   isVisible: boolean;
   onClose: () => void;
-  result: SearchResult;
+  result: BareEvent;
   onFollow?: (pubkey: string) => void;
-  onShare?: (result: SearchResult) => void;
+  onShare?: (result: BareEvent) => void;
   isFollowing: boolean;
   setIsFollowing: (following: boolean) => void;
   localFollowerCount: number;
@@ -33,41 +40,95 @@ export const ProfilePopup: React.FC<ProfilePopupProps> = ({
   localFollowerCount,
   setLocalFollowerCount,
 }) => {
-  const { isDark } = useTheme();
+  const colors = useThemeColors();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const colorScheme = isDark ? 'dark' : 'light';
-  const colors = Colors[colorScheme];
 
-  // Extract banner image from profile data - check common banner fields
-  const bannerImage = result.event.banner ||
-                     result.event.cover_image ||
-                     result.event.cover ||
-                     result.event.header_image ||
-                     null;
+  const [bannerImage, setBannerImage] = useState<string | null>(null);
+  const [isLoadingBanner, setIsLoadingBanner] = useState(false);
+  const [recentActivityTimestamp, setRecentActivityTimestamp] = useState<number | null>(null);
 
-  const formatTimestamp = (timestamp: number) => {
-    const date = new Date(timestamp * 1000);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  // Load banner image when popup is opened
+  useEffect(() => {
+    if (isVisible && !bannerImage && !isLoadingBanner) {
+      loadBannerImage();
+    }
+  }, [isVisible, bannerImage, isLoadingBanner]);
 
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString();
-  };
+  // Load recent activity timestamp when popup is opened
+  useEffect(() => {
+    if (isVisible && result.authorPubkey && !recentActivityTimestamp) {
+      getRecentActivityTimestamp(result.authorPubkey).then(timestamp => {
+        if (timestamp) {
+          setRecentActivityTimestamp(timestamp);
+        }
+      });
+    }
+  }, [isVisible, result.authorPubkey, recentActivityTimestamp]);
 
-  const formatActivityTimestamp = (timestamp: number) => {
-    const date = new Date(timestamp * 1000);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const loadBannerImage = async () => {
+    if (!result.authorPubkey) return;
 
-    if (diffHours < 1) return 'Just now';
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
+    setIsLoadingBanner(true);
+    try {
+      // Check if we have banner info in the current profile data
+      const currentBanner = result.event.banner ||
+                           result.event.cover_image ||
+                           result.event.cover ||
+                           result.event.header_image;
+
+      if (currentBanner) {
+        setBannerImage(currentBanner);
+        setIsLoadingBanner(false);
+        return;
+      }
+
+      // First check repository for fresh profile data
+      const profileFilter = { kinds: [0], authors: [result.authorPubkey] };
+      let localEvents = repository.query([profileFilter]);
+
+      if (localEvents.length > 0) {
+        const event = localEvents[0];
+        const profile = JSON.parse(event.content || '{}');
+
+        const newBanner = profile.banner ||
+                         profile.cover_image ||
+                         profile.cover ||
+                         profile.header_image;
+
+        if (newBanner) {
+          setBannerImage(newBanner);
+          setIsLoadingBanner(false);
+          return;
+        }
+      }
+
+      // Load from relays if not found locally
+      const presetPublicRelays = PUBLIC_RELAYS.slice(0, 8);
+      const relayUrls = presetPublicRelays.slice(0, 6);
+
+      const profileEvents = await load({
+        relays: relayUrls,
+        filters: [{ kinds: [0], authors: [result.authorPubkey] }],
+      }) as any[];
+
+      if (profileEvents && profileEvents.length > 0) {
+        const event = profileEvents[0];
+        const profile = JSON.parse(event.content || '{}');
+
+        const newBanner = profile.banner ||
+                         profile.cover_image ||
+                         profile.cover ||
+                         profile.header_image;
+
+        if (newBanner) {
+          setBannerImage(newBanner);
+        }
+      }
+    } catch (error) {
+      console.error('[PROFILE-POPUP] Failed to load banner:', error);
+    } finally {
+      setIsLoadingBanner(false);
+    }
   };
 
   return (
@@ -86,20 +147,37 @@ export const ProfilePopup: React.FC<ProfilePopupProps> = ({
         }
       ]}
     >
-      {/* Header with banner image */}
-      <View style={styles.headerContainer}>
-        {bannerImage ? (
+      {/* Header with banner image - only show if banner exists */}
+      {bannerImage && (
+        <View style={styles.headerContainer}>
           <Image
             source={{ uri: bannerImage }}
             style={styles.bannerImage}
             resizeMode="cover"
           />
-        ) : (
-          <View style={[styles.bannerPlaceholder, { backgroundColor: colors.surfaceVariant }]} />
-        )}
 
-        {/* Close button overlay */}
-        <View style={styles.closeButtonContainer}>
+          {/* Close button overlay */}
+          <View style={styles.closeButtonContainer}>
+            <Button
+              type="clear"
+              icon={
+                <Icon
+                  name="close"
+                  type="ionicon"
+                  size={24}
+                  color={colors.text}
+                />
+              }
+              onPress={onClose}
+              buttonStyle={[styles.closeButton, { backgroundColor: colors.surface + 'CC' }]}
+            />
+          </View>
+        </View>
+      )}
+
+      {/* Close button when no banner */}
+      {!bannerImage && (
+        <View style={styles.closeButtonContainerNoBanner}>
           <Button
             type="clear"
             icon={
@@ -114,7 +192,7 @@ export const ProfilePopup: React.FC<ProfilePopupProps> = ({
             buttonStyle={[styles.closeButton, { backgroundColor: colors.surface + 'CC' }]}
           />
         </View>
-      </View>
+      )}
 
       <Divider />
 
@@ -125,7 +203,7 @@ export const ProfilePopup: React.FC<ProfilePopupProps> = ({
                         {/* Pubkey section */}
             <View style={styles.pubkeyContainer}>
               <PubkeyDisplay
-                pubkey={result.metadata.authorPubkey || ''}
+                pubkey={result.authorPubkey || ''}
                 showLabel={true}
                 label="Public Key"
               />
@@ -176,16 +254,24 @@ export const ProfilePopup: React.FC<ProfilePopupProps> = ({
 
               {/* Name */}
               <Text style={[styles.nameText, { color: colors.text }]}>
-                {result.event.name || result.event.display_name || 'Anonymous'}
+                {result.event.name || result.event.display_name || 'Loading...'}
               </Text>
 
               {/* Handle */}
-              <Text style={[styles.handleText, { color: colors.placeholder }]}>
-                {result.event.website || result.event.lud06 || result.event.lud16 || result.event.nip05 || ''}
-            </Text>
+              <View style={styles.handleTextContainer}>
+                {(result.event.website || result.event.lud06 || result.event.lud16 || result.event.nip05) && (
+                  <ExternalLink
+                    href={result.event.website || result.event.lud06 || result.event.lud16 || result.event.nip05 || ''}
+                    style={[styles.handleText, { color: colors.primary }]}
+                    numberOfLines={1}
+                  >
+                    {result.event.website || result.event.lud06 || result.event.lud16 || result.event.nip05 || ''}
+                  </ExternalLink>
+                )}
+              </View>
 
               {/* Verification badge */}
-              {result.metadata.verified && (
+              {result.verified && (
                 <View style={[styles.verifiedBadge, { backgroundColor: colors.success }]}>
                   <Icon
                     name="checkmark-circle"
@@ -195,18 +281,10 @@ export const ProfilePopup: React.FC<ProfilePopupProps> = ({
                   />
                   <Text style={[styles.verifiedText, { color: colors.surface }]}>
                     Verified
-            </Text>
-          </View>
+                  </Text>
+                </View>
               )}
 
-              {/* Trust score */}
-              {result.metadata.trustScore && result.metadata.trustScore > 0 && (
-                <View style={[styles.trustBadge, { backgroundColor: colors.info }]}>
-                  <Text style={[styles.trustText, { color: colors.surface }]}>
-                    Trust Score: {result.metadata.trustScore}
-            </Text>
-          </View>
-          )}
             </View>
 
             {/* Actions */}
@@ -233,7 +311,7 @@ export const ProfilePopup: React.FC<ProfilePopupProps> = ({
           <View style={styles.statsGrid}>
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: colors.text }]}>
-                {localFollowerCount || result.metadata.followerCount || 0}
+                {localFollowerCount || result.followerCount || 0}
               </Text>
               <Text style={[styles.statLabel, { color: colors.placeholder }]}>
                 Followers
@@ -241,26 +319,26 @@ export const ProfilePopup: React.FC<ProfilePopupProps> = ({
             </View>
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: colors.text }]}>
-                {result.metadata.followingCount || 0}
+                {result.followingCount || 0}
               </Text>
               <Text style={[styles.statLabel, { color: colors.placeholder }]}>
                 Following
               </Text>
             </View>
-            {result.metadata.timestamp && (
+            {result.event.created_at && (
               <View style={styles.statItem}>
                 <Text style={[styles.statNumber, { color: colors.text }]}>
-                  {formatTimestamp(result.metadata.timestamp)}
+                  {formatTimestampRelative(result.event.created_at)}
                 </Text>
                 <Text style={[styles.statLabel, { color: colors.placeholder }]}>
                   Created
                 </Text>
               </View>
             )}
-            {result.metadata.recentActivityTimestamp && (
+            {recentActivityTimestamp && (
               <View style={styles.statItem}>
                 <Text style={[styles.statNumber, { color: colors.primary }]}>
-                  {formatActivityTimestamp(result.metadata.recentActivityTimestamp)}
+                  {formatTimestampRelative(recentActivityTimestamp)}
                 </Text>
                 <Text style={[styles.statLabel, { color: colors.primary }]}>
                   Recent Activity
@@ -276,7 +354,7 @@ export const ProfilePopup: React.FC<ProfilePopupProps> = ({
 
 const styles = StyleSheet.create({
   overlay: {
-    borderRadius: 24,
+    ...withBorderRadius('xxl'),
     overflow: 'hidden',
     margin: 0,
     padding: 0,
@@ -294,13 +372,14 @@ const styles = StyleSheet.create({
     margin: 0,
     padding: 0,
   },
-  bannerPlaceholder: {
-    width: '100%',
-    height: '100%',
-    margin: 0,
-    padding: 0,
-  },
+
   closeButtonContainer: {
+    position: 'absolute',
+    top: Platform.OS === 'web' ? spacing(4) : spacing(3),
+    right: Platform.OS === 'web' ? spacing(4) : spacing(3),
+    zIndex: 10,
+  },
+  closeButtonContainerNoBanner: {
     position: 'absolute',
     top: Platform.OS === 'web' ? spacing(4) : spacing(3),
     right: Platform.OS === 'web' ? spacing(4) : spacing(3),
@@ -309,15 +388,14 @@ const styles = StyleSheet.create({
   closeButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    ...withBorderRadius('round'),
   },
   overlayContent: {
     padding: Platform.OS === 'web' ? spacing(4) : spacing(3),
     flex: 1,
   },
   container: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    ...LayoutPresets.rowStart,
   },
   leftSide: {
     flex: 1,
@@ -343,7 +421,7 @@ const styles = StyleSheet.create({
     minHeight: 100,
     maxHeight: 200,
     borderWidth: 1,
-    borderRadius: 12,
+    ...withBorderRadius('md'),
     padding: spacing(3),
   },
   aboutText: {
@@ -359,7 +437,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statsGrid: {
-    flexDirection: 'row',
+    ...LayoutPresets.row,
     flexWrap: 'wrap',
     gap: spacing(3),
     justifyContent: 'center',
@@ -385,8 +463,7 @@ const styles = StyleSheet.create({
     width: Platform.OS === 'web' ? 90 : 80,
     height: Platform.OS === 'web' ? 90 : 80,
     borderRadius: Platform.OS === 'web' ? 45 : 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    ...LayoutPresets.center,
     marginBottom: spacing(2),
   },
   avatarText: {
@@ -399,18 +476,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: spacing(1),
   },
+  handleTextContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: spacing(2),
+    maxWidth: 200,
+  },
   handleText: {
     fontSize: 15,
     textAlign: 'center',
-    marginBottom: spacing(2),
     opacity: 0.7,
+    maxWidth: 180,
   },
   verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    ...LayoutPresets.row,
     paddingHorizontal: spacing(2),
     paddingVertical: spacing(1),
-    borderRadius: 12,
+    ...withBorderRadius('md'),
     marginBottom: spacing(2),
   },
   verifiedText: {
@@ -418,15 +500,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: spacing(1),
   },
-  trustBadge: {
-    paddingHorizontal: spacing(2),
-    paddingVertical: spacing(1),
-    borderRadius: 8,
-  },
-  trustText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
+
   actionsContainer: {
     width: '100%',
   },

@@ -1,7 +1,6 @@
-import Colors from '@/core/env/Colors';
 import { spacing } from '@/core/env/Spacing';
-import { useTheme } from '@/lib/theme/ThemeContext';
-import { SearchResult } from '@/lib/types/search';
+import { useThemeColors } from '@/lib/theme/ThemeContext';
+import { BareEvent } from '@/lib/types/search';
 import { toggleFollowProfile } from '@/lib/utils/followUtils';
 import { Button, Icon } from '@rneui/themed';
 import { pubkey } from '@welshman/app';
@@ -9,9 +8,9 @@ import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 interface ProfileResultActionsProps {
-  result: SearchResult;
+  result: BareEvent;
   onFollow?: (pubkey: string) => void;
-  onShare?: (result: SearchResult) => void;
+  onShare?: (result: BareEvent) => void;
   showActions?: boolean;
   isFollowing: boolean;
   setIsFollowing: (following: boolean) => void;
@@ -31,13 +30,11 @@ export const ProfileResultActions: React.FC<ProfileResultActionsProps> = ({
   setLocalFollowerCount,
   onLoginRequired,
 }) => {
-  const { isDark } = useTheme();
-  const colorScheme = isDark ? 'dark' : 'light';
-  const colors = Colors[colorScheme];
+  const colors = useThemeColors();
   const [isFollowLoading, setIsFollowLoading] = useState(false);
 
   const handleFollow = async () => {
-    if (isFollowLoading || !result.metadata.authorPubkey) return;
+    if (isFollowLoading || !result.authorPubkey) return;
 
     // Check if user is logged in
     const currentUserPubkey = pubkey.get();
@@ -50,7 +47,7 @@ export const ProfileResultActions: React.FC<ProfileResultActionsProps> = ({
 
     try {
       setIsFollowLoading(true);
-      const newFollowStatus = await toggleFollowProfile(result.metadata.authorPubkey);
+      const newFollowStatus = await toggleFollowProfile(result.authorPubkey);
       setIsFollowing(newFollowStatus);
 
       // Update local follower count
@@ -58,7 +55,7 @@ export const ProfileResultActions: React.FC<ProfileResultActionsProps> = ({
 
       // Call the parent onFollow callback if provided
       if (onFollow) {
-        onFollow(result.metadata.authorPubkey);
+        onFollow(result.authorPubkey);
       }
 
       console.log('[PROFILE-ACTIONS] Follow status updated:', newFollowStatus);
@@ -132,5 +129,15 @@ const styles = StyleSheet.create({
   actionButton: {
     padding: spacing(2),
     borderRadius: 18,
+  },
+  trustBadge: {
+    paddingHorizontal: spacing(1.5),
+    paddingVertical: spacing(0.5),
+    borderRadius: 8,
+  },
+  trustText: {
+    fontSize: 11,
+    fontWeight: '700',
+    paddingVertical: spacing(0.5),
   },
 });

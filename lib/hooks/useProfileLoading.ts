@@ -1,31 +1,30 @@
-import { SearchResult } from '@/lib/types/search';
-import { useBatchProfileLoader } from '@/lib/utils/profileBatchLoader';
+import { BareEvent } from '@/lib/types/search';
+import { simpleProfileLoader } from '@/lib/utils/profileBatchLoader';
 import { useEffect, useState } from 'react';
 
 interface ProfileLoadingState {
   pubkey: string;
   isLoading: boolean;
-  profile: SearchResult | null;
+  profile: BareEvent | undefined;
   basicInfo: {
     name?: string;
     displayName?: string;
     picture?: string;
-  } | null;
+  } | undefined;
   error: any;
 }
 
-export const useProfileLoading = (pubkey: string, relays?: string[], initialProfile?: SearchResult) => {
-  const { requestProfile } = useBatchProfileLoader();
+export const useProfileLoading = (pubkey: string, relays?: string[], initialProfile?: BareEvent) => {
   const [state, setState] = useState<ProfileLoadingState>({
     pubkey,
     isLoading: !initialProfile,
-    profile: initialProfile || null,
+    profile: initialProfile || undefined,
     basicInfo: initialProfile ? {
       name: initialProfile.event.name,
       displayName: initialProfile.event.display_name,
       picture: initialProfile.event.picture,
-    } : null,
-    error: null,
+    } : undefined,
+    error: undefined,
   });
 
   useEffect(() => {
@@ -39,7 +38,7 @@ export const useProfileLoading = (pubkey: string, relays?: string[], initialProf
           displayName: initialProfile.event.display_name,
           picture: initialProfile.event.picture,
         },
-        error: null,
+        error: undefined,
       }));
       return;
     }
@@ -54,17 +53,16 @@ export const useProfileLoading = (pubkey: string, relays?: string[], initialProf
       ...prev,
       pubkey,
       isLoading: true,
-      profile: null,
-      basicInfo: null,
-      error: null,
+      profile: undefined,
+      basicInfo: undefined,
+      error: undefined,
     }));
 
     const loadProfile = async () => {
       try {
-        const result = await requestProfile(pubkey, relays);
+        const profile = await simpleProfileLoader.requestProfile({ pubkey, relays });
 
-        if (result.profile) {
-          const profile = result.profile;
+        if (profile) {
           setState(prev => ({
             ...prev,
             isLoading: false,
@@ -74,13 +72,13 @@ export const useProfileLoading = (pubkey: string, relays?: string[], initialProf
               displayName: profile.event.display_name,
               picture: profile.event.picture,
             },
-            error: null,
+            error: undefined,
           }));
         } else {
           setState(prev => ({
             ...prev,
             isLoading: false,
-            error: result.error,
+            error: new Error('Profile not found'),
           }));
         }
       } catch (error) {
@@ -93,7 +91,7 @@ export const useProfileLoading = (pubkey: string, relays?: string[], initialProf
     };
 
     loadProfile();
-  }, [pubkey, relays, initialProfile, requestProfile]);
+  }, [pubkey, relays, initialProfile]);
 
   return state;
 };

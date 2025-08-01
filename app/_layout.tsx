@@ -4,12 +4,12 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import 'react-native-reanimated';
 
-import { OverFlowReader } from '@/components/generalUI/OverFlowReader';
 import { MetaConfig } from '@/core/env/MetaConfig';
 import { initializeWelshmanStorage } from '@/core/state/welshman-storage';
+import { OverFlowReader } from '@/lib/components/OverFlowReader';
 import { PopupManager } from '@/lib/components/popups/PopupManager';
 import { RNEUIThemeWrapper } from '@/lib/theme/RNEUIThemeProvider';
 import { ThemeProvider as AppThemeProvider, useTheme } from '@/lib/theme/ThemeContext';
@@ -85,11 +85,7 @@ function RootLayoutNav() {
     };
 
     const initStorage = async () => {
-      try {
-        // Initialize the persistent stores using the new sync function
         await initializeWelshmanStorage();
-        console.log("Welshman storage synced successfully");
-
         // Mobile-specific network status check
         if (Platform.OS !== 'web') {
           console.log('📱 Mobile network status:', {
@@ -99,9 +95,6 @@ function RootLayoutNav() {
             searchRelaysConfigured: !!routerContext.getSearchRelays
           });
         }
-      } catch (error) {
-        console.error("Failed to initialize Welshman storage:", error);
-      }
     };
 
     initStorage();
@@ -122,18 +115,21 @@ function RootLayoutNav() {
 }
 
 function ThemeProviderWrapper() {
-  const { isDark } = useTheme();
+  const { isDark, getColors } = useTheme();
   const colorScheme = isDark ? 'dark' : 'light';
+  const colors = getColors();
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <OverFlowReader>
-        <Stack>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="(modals)" options={{ presentation: 'modal', headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: true, title: '' }} />
-        </Stack>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+          <Stack>
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(modals)" options={{ presentation: 'modal', headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: true, title: '' }} />
+          </Stack>
+        </View>
       </OverFlowReader>
     </ThemeProvider>
   );

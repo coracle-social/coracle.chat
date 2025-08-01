@@ -1,24 +1,24 @@
-import { SearchResult } from '@/lib/types/search';
+import { BareEvent } from '@/lib/types/search';
 import { useMemo } from 'react';
 
 export interface UseSearchResultsReturn {
-  searchResults: SearchResult[];
+  searchResults: BareEvent[];
 }
 
 export const useSearchResults = (
-  profileResults: SearchResult[],
-  contentResults: SearchResult[],
+  profileEvents: BareEvent[],
+  contentEvents: BareEvent[],
   selectedFilters: string[],
   selectedSort: string
 ): UseSearchResultsReturn => {
   const searchResults = useMemo(() => {
-    let results: SearchResult[] = [];
+    let results: BareEvent[] = [];
 
     if (selectedFilters.includes('people')) {
-      results = [...results, ...profileResults];
+      results = [...results, ...profileEvents];
     }
     if (selectedFilters.includes('content')) {
-      results = [...results, ...contentResults];
+      results = [...results, ...contentEvents];
     }
 
     // Apply sorting to all tabs, if adding many more options separate tab sorts for clarity
@@ -27,70 +27,47 @@ export const useSearchResults = (
         case 'date':
           // For profiles: use recent activity if available, fallback to creation date
           if (a.type === 'profile') {
-            const aDate = a.metadata.recentActivityTimestamp || a.metadata.timestamp || 0;
-            const bDate = b.metadata.recentActivityTimestamp || b.metadata.timestamp || 0;
+            const aDate = a.event.created_at || 0;
+            const bDate = b.event.created_at || 0;
             return bDate - aDate;
           } else {
             // For content: use creation timestamp
-            return (b.metadata.timestamp || 0) - (a.metadata.timestamp || 0);
+            return (b.event.created_at || 0) - (a.event.created_at || 0);
           }
         case 'popularity':
-          // For content: use like count, for profiles: heavily weight follower/following counts
-          if (a.type === 'content') {
-            const aPopularity = (a.metadata.likeCount || 0) + (a.metadata.qualityScore || 0) * 50;
-            const bPopularity = (b.metadata.likeCount || 0) + (b.metadata.qualityScore || 0) * 50;
-            return bPopularity - aPopularity;
+          // For content: use like count + reply count, for profiles: heavily weight follower/following counts
+          if (a.type === 'profile' && b.type === 'profile') {
+            const aScore = (a.followerCount || 0) + (a.followingCount || 0);
+            const bScore = (b.followerCount || 0) + (b.followingCount || 0);
+            return bScore - aScore;
+          } else if (a.type === 'content' && b.type === 'content') {
+            // For content: use emoji count + reply count for popularity
+            const aScore = (a.emojiCount || 0) + (a.replyCount || 0);
+            const bScore = (b.emojiCount || 0) + (b.replyCount || 0);
+            return bScore - aScore;
           } else {
-            // For profiles: heavily weight follower and following counts
-            const now = Math.floor(Date.now() / 1000);
-            const aActivityBonus = a.metadata.recentActivityTimestamp ?
-              Math.max(0, 5 - Math.floor((now - a.metadata.recentActivityTimestamp) / (24 * 60 * 60))) * 10 : 0; // Activity within 5 days gets bonus
-            const bActivityBonus = b.metadata.recentActivityTimestamp ?
-              Math.max(0, 5 - Math.floor((now - b.metadata.recentActivityTimestamp) / (24 * 60 * 60))) * 10 : 0;
-
-            const aFollowerWeight = (a.metadata.followerCount || 0) * 2.0; // Heavy weight for followers
-            const aFollowingWeight = (a.metadata.followingCount || 0) * 0.5; // Medium weight for following
-            const aQualityWeight = (a.metadata.qualityScore || 0) * 100; // Quality score bonus
-            // Only use trust score for WoT results (when trustLevel is present)
-            const aTrustWeight = (a.metadata.trustLevel && a.metadata.trustScore) ? (a.metadata.trustScore || 0) * 0.3 : 0;
-            const aPopularity = aFollowerWeight + aFollowingWeight + aQualityWeight + aActivityBonus + aTrustWeight;
-
-            const bFollowerWeight = (b.metadata.followerCount || 0) * 2.0;
-            const bFollowingWeight = (b.metadata.followingCount || 0) * 0.5;
-            const bQualityWeight = (b.metadata.qualityScore || 0) * 100;
-            const bTrustWeight = (b.metadata.trustLevel && b.metadata.trustScore) ? (b.metadata.trustScore || 0) * 0.3 : 0;
-            const bPopularity = bFollowerWeight + bFollowingWeight + bQualityWeight + bActivityBonus + bTrustWeight;
-
-            return bPopularity - aPopularity;
+            // Mixed types: profiles first
+            return a.type === 'profile' ? -1 : 1;
           }
         case 'trust':
-          const aTrust = a.metadata.trustLevel && a.metadata.trustScore ? a.metadata.trustScore : 0;
-          const bTrust = b.metadata.trustLevel && b.metadata.trustScore ? b.metadata.trustScore : 0;
-          return bTrust - aTrust;
-        case 'name':
-          return (a.title || '').localeCompare(b.title || '');
+          // For profiles: use trust score if available
+          if (a.type === 'profile' && b.type === 'profile') {
+            // Trust scores would need to be calculated separately
+            // For now, use follower count as proxy
+            const aScore = a.followerCount || 0;
+            const bScore = b.followerCount || 0;
+            return bScore - aScore;
+          } else {
+            // Mixed types: profiles first
+            return a.type === 'profile' ? -1 : 1;
+          }
         case 'relevance':
         default:
-          if (a.type === 'content') {
-            const aRelevance = (a.metadata.likeCount || 0);
-            const bRelevance = (b.metadata.likeCount || 0);
-            return bRelevance - aRelevance;
-          } else {
-            const now = Math.floor(Date.now() / 1000);
-            const aActivityBonus = a.metadata.recentActivityTimestamp ?
-              Math.max(0, 10 - Math.floor((now - a.metadata.recentActivityTimestamp) / (24 * 60 * 60))) : 0;
-            const bActivityBonus = b.metadata.recentActivityTimestamp ?
-              Math.max(0, 10 - Math.floor((now - b.metadata.recentActivityTimestamp) / (24 * 60 * 60))) : 0;
-
-            const aTrustScore = a.metadata.trustLevel && a.metadata.trustScore ? a.metadata.trustScore : 0;
-            const bTrustScore = b.metadata.trustLevel && b.metadata.trustScore ? b.metadata.trustScore : 0;
-            const aRelevance = (a.metadata.followerCount || 0) * 0.1 + aActivityBonus + aTrustScore;
-            const bRelevance = (b.metadata.followerCount || 0) * 0.1 + bActivityBonus + bTrustScore;
-            return bRelevance - aRelevance;
-          }
+          // For now, use creation date as relevance proxy
+          return (b.event.created_at || 0) - (a.event.created_at || 0);
       }
     });
-  }, [selectedFilters, profileResults, contentResults, selectedSort]);
+  }, [profileEvents, contentEvents, selectedFilters, selectedSort]);
 
   return {
     searchResults,

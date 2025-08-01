@@ -1,16 +1,14 @@
-import SlideOutOptions from '@/components/generalUI/SlideOutOptions';
-import Slider from '@/components/generalUI/Slider';
-import ExpandableSlider from '@/components/profile/ExpandableSlider';
-import ProfileCard from '@/components/profile/ProfileCard';
-import Colors from '@/core/env/Colors';
 import { Layout } from '@/core/env/Layout';
 import { spacing } from '@/core/env/Spacing';
-
-import { useTheme } from '@/lib/theme/ThemeContext';
+import ExpandableSlider from '@/lib/components/ExpandableSlider';
+import { OptionButton } from '@/lib/components/OptionButton';
+import ProfileCard from '@/lib/components/ProfileCard';
+import SlideOutOptions from '@/lib/components/SlideOutOptions';
+import Slider from '@/lib/components/Slider';
+import { useStore } from '@/lib/stores/useWelshmanStore2';
+import { useTheme, useThemeColors } from '@/lib/theme/ThemeContext';
 import { Text, View } from '@/lib/theme/Themed';
-import { useStore } from '@/stores/useWelshmanStore2';
 import Feather from '@expo/vector-icons/Feather';
-import { Button } from '@rneui/themed';
 import { pubkey } from '@welshman/app';
 import { Link } from 'expo-router';
 import { Platform, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
@@ -18,14 +16,7 @@ import { Platform, ScrollView, StyleSheet, TouchableOpacity } from 'react-native
 export default function SettingsScreen() {
   const [currentPubkey] = useStore(pubkey);
   const { isDark, toggleTheme } = useTheme();
-
-  const colorScheme = isDark ? 'dark' : 'light';
-  const colors = Colors[colorScheme];
-
-  const handleButtonPress = () => {
-    console.log('Profile button pressed');
-    //This will eventually view profile as a foreign user
-  };
+  const colors = useThemeColors();
 
   const handleSliderPress = () => {
     console.log('Slider pressed');
@@ -37,26 +28,6 @@ export default function SettingsScreen() {
     // The userProfile store will automatically update when pubkey changes
   };
 
-  const accountSliders = [
-    {
-      imageUrl: "https://source.unsplash.com/random/60x60",
-      title: "Email Settings",
-      description: "Manage your email preferences and notifications",
-      onPress: handleSliderPress,
-    },
-    {
-      imageUrl: "https://via.placeholder.com/60",
-      title: "Password",
-      description: "Change your password and security settings",
-      onPress: handleSliderPress,
-    },
-    {
-      imageUrl: "https://via.placeholder.com/60",
-      title: "Two-Factor Auth",
-      description: "Enable or disable two-factor authentication",
-      onPress: handleSliderPress,
-    },
-  ];
 
   const notificationSliders = [
     {
@@ -71,78 +42,32 @@ export default function SettingsScreen() {
       description: "Manage email notification settings",
       onPress: handleSliderPress,
     },
-    {
-      imageUrl: "https://via.placeholder.com/60",
-      title: "Sound & Vibration",
-      description: "Customize notification sounds and vibration",
-      onPress: handleSliderPress,
-    },
   ];
 
   return (
     <>
-      <View style={[styles.container, Platform.OS === 'web' && Layout.webContainer]}>
-        {Platform.OS === 'web' ? (
-          <TouchableOpacity
-            style={[
-              styles.floatingThemeButton,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-              }
-            ]}
-            onPress={toggleTheme}
-          >
-            <Feather
-              name={isDark ? "sun" : "moon"}
-              size={20}
-              color={colors.text}
-            />
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.headerContainer}>
-            <TouchableOpacity
-              style={[
-                styles.headerThemeButton,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                }
-              ]}
-              onPress={toggleTheme}
-            >
-              <Feather
-                name={isDark ? "sun" : "moon"}
-                size={20}
-                color={colors.text}
-              />
-            </TouchableOpacity>
-          </View>
-        )}
-
-        <ScrollView showsVerticalScrollIndicator={false}>
+      <View style={[styles.container, { backgroundColor: colors.background }, Platform.OS === 'web' && Layout.webContainer]}>
+        <ScrollView showsVerticalScrollIndicator={false} style={{ backgroundColor: colors.background }}>
           <View style={styles.profileSection}>
             <Text style={styles.sectionTitle}>Profile</Text>
             {currentPubkey ? (
               <>
                 <ProfileCard />
-
                 <View style={styles.slideOutContainer}>
                   <SlideOutOptions
-                    icon="more-vert"
-                    alignment="right"
+                    icon="more-vertical"
                     buttons={[
-                      {
-                        title: "View Profile",
-                        onPress: handleButtonPress,
-                        icon: "person",
+                      { //without a real onpress this closes the toggle
+                        title: "Settings",
+                        onPress: () => console.log("Settings pressed"),
+                        icon: "settings",
                         color: colors.primary
                       },
                       {
                         title: "Logout",
                         onPress: handleLogout,
                         icon: "log-out",
-                        color: "#dc3545"
+                        color: colors.error
                       }
                     ]}
                   />
@@ -158,48 +83,49 @@ export default function SettingsScreen() {
               ]}>
                 <Text style={[styles.loginText, { color: colors.placeholder }]}>Sign in to access your profile and settings</Text>
                 <Link href="/modal" asChild>
-                  <Button
+                  <OptionButton
                     title="Login"
-                    buttonStyle={styles.loginButton}
-                    titleStyle={styles.loginButtonText}
-                    containerStyle={styles.loginButtonContainer}
+                    onPress={() => {}} // Link handles the navigation
+                    icon="log-in"
+                    variant="primary"
+                    size="medium"
                   />
                 </Link>
               </View>
             )}
           </View>
 
+          <Text style={[styles.themeToggleLabel, { color: colors.text }]}>
+                Dark/Light Mode
+              </Text>
+              <TouchableOpacity
+                style={[
+                  styles.themeToggleButton,
+                  {
+                    backgroundColor: colors.primary,
+                    borderColor: colors.border,
+                  }
+                ]}
+                onPress={toggleTheme}
+              >
+                <Feather
+                  name={isDark ? "sun" : "moon"}
+                  size={20}
+                  color={colors.surface}
+                />
+              </TouchableOpacity>
+
           <View style={styles.sliderSection}>
-            <Text style={styles.sectionTitle}>Options</Text>
+            <Text style={styles.sectionTitle}>Examples(non-functional)</Text>
             <Slider
               imageUrl="https://via.placeholder.com/60"
               title="Account Settings"
               description="Manage your account preferences and security settings"
               onPress={handleSliderPress}
             />
-            <Slider
-              imageUrl="https://via.placeholder.com/60"
-              title="Notifications"
-              description="Configure how and when you receive notifications"
-              onPress={handleSliderPress}
-            />
-            <Slider
-              imageUrl="https://via.placeholder.com/60"
-              title="Privacy"
-              description="Control your privacy settings and data sharing preferences"
-              onPress={handleSliderPress}
-            />
           </View>
 
-
-
           <View style={styles.expandableSection}>
-            <ExpandableSlider
-              title="Account Management"
-              icon="user"
-              sliders={accountSliders}
-              shouldRotate={false}
-            />
             <ExpandableSlider
               title="Notification Preferences"
               icon="bell"
@@ -230,6 +156,9 @@ const styles = StyleSheet.create({
   profileSection: {
     marginBottom: spacing(8),
   },
+  themeSection: {
+    marginBottom: spacing(8),
+  },
   sliderSection: {
     marginBottom: spacing(8),
   },
@@ -240,6 +169,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginBottom: spacing(3),
+  },
+  themeToggleLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  themeToggleButton: {
+    width: spacing(10),
+    height: spacing(10),
+    borderRadius: spacing(5),
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
   },
   loginContainer: {
     alignItems: 'center',
@@ -252,57 +193,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: spacing(4),
   },
-  loginButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: spacing(6),
-    paddingVertical: spacing(3),
-    borderRadius: spacing(2),
-  },
-  loginButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
-  },
-  loginButtonContainer: {
-    width: 'auto',
-  },
-  headerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing(3),
-  },
-  headerThemeButton: {
-    width: spacing(10),
-    height: spacing(10),
-    borderRadius: spacing(5),
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: spacing(1) },
-    shadowRadius: spacing(1),
-  },
-  floatingThemeButton: {
-    position: 'fixed',
-    bottom: spacing(5),
-    right: spacing(5),
-    width: spacing(13),
-    height: spacing(13),
-    borderRadius: spacing(7),
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: spacing(1) },
-    shadowRadius: spacing(2),
-    zIndex: 1000,
-  },
-
   slideOutContainer: {
     marginTop: 16,
     marginHorizontal: 16,
