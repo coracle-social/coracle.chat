@@ -4,106 +4,93 @@ import { useEmojiReactions } from '@/lib/hooks/useEmojiReactions';
 import { useSlideUpPopup } from '@/lib/hooks/useSlideUpPopup';
 import { useThemeColors } from '@/lib/theme/ThemeContext';
 import { Text } from '@/lib/theme/Themed';
-import { BareEvent } from '@/lib/types/search';
 import {
   addEmojiReaction,
-  convertEmojiTextToChar,
-  isValidEmojiText,
   removeEmojiReaction
 } from '@/lib/utils/emojiReactionUtils';
 import { common, text, withBorderRadius } from '@/lib/utils/styleUtils';
 import { pubkey } from '@welshman/app';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Alert, StyleSheet, TouchableOpacity } from 'react-native';
+import { EmojiReactionButton } from './EmojiReactionButton';
+
+interface GenericEvent {
+  id: string;
+  pubkey: string;
+  content: string;
+  created_at: number;
+  kind: number;
+  tags: string[][];
+  sig: string;
+}
 
 interface EmojiReactionsProps {
-  result: BareEvent;
+  event: GenericEvent;
+  authorPubkey?: string;
+  emojiCount?: number;
+  replyCount?: number;
   maxVisible?: number; // Maximum number of emoji reactions to show before collapsing
 }
 
 export const EmojiReactions: React.FC<EmojiReactionsProps> = ({
-  result,
+  event,
+  authorPubkey,
+  emojiCount,
+  replyCount,
   maxVisible = 2
 }) => {
   const colors = useThemeColors();
   const [isLoading, setIsLoading] = useState(false);
   const [showAllEmojis, setShowAllEmojis] = useState(false);
-  const {  showPopup } = useSlideUpPopup();
-  const { openEmojiPicker } = useEmojiPickerPopup();
+  const { showPopup } = useSlideUpPopup();
+  const { openEmojiPicker, handleEmojiSelect } = useEmojiPickerPopup();
 
-  const { emojiReactions, isLoading: isLoadingReactions, updateEmojiReaction, removeEmojiReactionFromState } = useEmojiReactions(result.event.id);
+  const { emojiReactions, isLoading: isLoadingReactions, updateEmojiReaction, removeEmojiReactionFromState } = useEmojiReactions(event.id);
 
-  // Filter and convert emoji reactions to only show valid emojis
-  const validEmojiReactions = useMemo(() => {
-    const valid: { [key: string]: any } = {};
-
-    Object.entries(emojiReactions).forEach(([emojiText, reaction]) => {
-      // Convert emoji text to actual emoji character
-      const emojiChar = convertEmojiTextToChar(emojiText);
-
-      // Only include if it's a valid emoji
-      if (isValidEmojiText(emojiText)) {
-        valid[emojiChar] = {
-          ...reaction,
-          emoji: emojiChar,
-          originalText: emojiText // Store original text for API calls
-        };
-      }
-    });
-
-    return valid;
-  }, [emojiReactions]);
-
-  // Create a reverse mapping from emoji char to original text
-  const emojiCharToOriginalText = useMemo(() => {
-    const mapping: { [key: string]: string } = {};
-    Object.entries(emojiReactions).forEach(([emojiText, reaction]) => {
-      const emojiChar = convertEmojiTextToChar(emojiText);
-      if (isValidEmojiText(emojiText)) {
-        mapping[emojiChar] = emojiText;
-      }
-    });
-    return mapping;
-  }, [emojiReactions]);
-
-  const handleEmojiPress = async (emojiChar: string) => {
-    console.log('[EMOJI-REACTIONS] handleEmojiPress called with emoji:', emojiChar);
+  const handleEmojiPress = async (emoji: string) => {
+    console.log('[EMOJI-REACTIONS] handleEmojiPress called with emoji:', emoji);
     if (isLoading) return;
 
     // Check if user is logged in
     const currentUserPubkey = pubkey.get();
     if (!currentUserPubkey) {
+      console.log('[EMOJI-REACTIONS] currentUserPubkey is false, showing popup');
       showPopup('You must login to react', 'warning');
+      //wont show anything yet, i removed the popup components
+      //want a betteer solution with less code
+      //probably a popup just onthe center of scren isntead of in each component
       return;
     }
-
-    // Get the original emoji text for API calls
-    const originalEmojiText = emojiCharToOriginalText[emojiChar] || emojiChar;
+    else {
+      console.log('[EMOJI-REACTIONS] isLoading is fal222se, continuing');
+    }
 
     try {
       setIsLoading(true);
-      const userReacted = validEmojiReactions[emojiChar]?.userReacted || false;
-      console.log('[EMOJI-REACTIONS] User reacted:', userReacted, 'for emoji:', originalEmojiText);
+      const userReacted = emojiReactions[emoji]?.userReacted || false;
+      console.log('[EMOJI-REACTIONS] User reacted:', userReacted, 'for emoji:', emoji);
 
       if (userReacted) {
         // Remove reaction
-        console.log('[EMOJI-REACTIONS] Removing reaction for emoji:', originalEmojiText);
-        await removeEmojiReaction(result.event, originalEmojiText);
-        const newCount = Math.max(0, (validEmojiReactions[emojiChar]?.count || 0) - 1);
-        const newUsers = (validEmojiReactions[emojiChar]?.users || []).filter((u: string) => u !== currentUserPubkey);
+        console.log('[EMOJI-REACTIONS] Removing reaction for emoji:', emoji);
+        await removeEmojiReaction(event, emoji);
+        const newCount = Math.max(0, (emojiReactions[emoji]?.count || 0) - 1);
+        const newUsers = (emojiReactions[emoji]?.users || []).filter((u: string) => u !== currentUserPubkey);
 
-        if (newCount === 0) {
-          removeEmojiReactionFromState(originalEmojiText);
-        } else {
-          updateEmojiReaction(originalEmojiText, newCount, false, newUsers);
-        }
+              if (newCount === 0) {
+        removeEmojiReactionFromState(emoji);
+      } else {
+        updateEmojiReaction(emoji, newCount, false, newUsers);
+      }
       } else {
         // Add reaction
-        console.log('[EMOJI-REACTIONS] Adding reaction for emoji:', originalEmojiText);
-        await addEmojiReaction(result.event, originalEmojiText);
-        const newCount = (validEmojiReactions[emojiChar]?.count || 0) + 1;
-        const newUsers = [...(validEmojiReactions[emojiChar]?.users || []), currentUserPubkey];
-        updateEmojiReaction(originalEmojiText, newCount, true, newUsers);
+        console.log('[EMOJI-REACTIONS] Adding reaction for emoji:', emoji);
+        await addEmojiReaction(event, emoji);
+        const currentCount = emojiReactions[emoji]?.count || 0;
+        const currentUsers = emojiReactions[emoji]?.users || [];
+        const newCount = currentCount + 1;
+        const newUsers = [...currentUsers, currentUserPubkey];
+        updateEmojiReaction(emoji, newCount, true, newUsers);
       }
     } catch (error) {
       console.error('[EMOJI-REACTIONS] Error handling emoji reaction:', error);
@@ -114,38 +101,19 @@ export const EmojiReactions: React.FC<EmojiReactionsProps> = ({
   };
 
   const handleAddReaction = async (emoji: string) => {
-    console.log('[EMOJI-REACTIONS] handleAddReaction called with emoji:', emoji);
-    await handleEmojiPress(emoji);
+    try {
+      await handleEmojiPress(emoji);
+    } catch (error) {
+      console.error('[EMOJI-REACTIONS] Error in handleAddReaction:', error);
+    }
   };
 
-  const renderEmojiReaction = (emoji: string, reaction: any) => {
-    const isUserReacted = reaction.userReacted;
+  // Override the handleEmojiSelect to use our local callback
+  const handleEmojiSelectOverride = useCallback((emoji: string) => {
+    handleAddReaction(emoji);
+  }, []);
 
-    return (
-      <TouchableOpacity
-        key={emoji}
-        style={[
-          styles.unifiedButton,
-          {
-            backgroundColor: isUserReacted ? colors.primary + '20' : 'transparent',
-            borderColor: isUserReacted ? colors.primary : colors.border,
-          }
-        ]}
-        onPress={() => handleEmojiPress(emoji)}
-        disabled={isLoading}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.emojiText} numberOfLines={1}>{emoji}</Text>
-        {reaction.count > 1 && (
-          <Text style={[styles.countText, { color: colors.placeholder }]}>
-            {reaction.count}
-          </Text>
-        )}
-      </TouchableOpacity>
-    );
-  };
-
-  const emojiEntries = Object.entries(validEmojiReactions);
+  const emojiEntries = Object.entries(emojiReactions);
   // Auto-expand to show more emojis if there are more than maxVisible (approximately 2 lines worth)
   const shouldAutoExpand = emojiEntries.length > maxVisible && emojiEntries.length <= maxVisible && !showAllEmojis;
   const visibleEmojis = shouldAutoExpand || showAllEmojis ? emojiEntries : emojiEntries.slice(0, maxVisible);
@@ -156,7 +124,7 @@ export const EmojiReactions: React.FC<EmojiReactionsProps> = ({
     return (
       <TouchableOpacity
         style={[styles.unifiedButton, { borderColor: colors.interactiveBorder }]}
-        onPress={() => openEmojiPicker(handleAddReaction)}
+        onPress={() => openEmojiPicker(handleEmojiSelectOverride)}
         disabled={true}
       >
         <Text style={[styles.addReactionText, { color: colors.placeholder }]}>
@@ -170,7 +138,7 @@ export const EmojiReactions: React.FC<EmojiReactionsProps> = ({
     return (
       <TouchableOpacity
         style={[styles.unifiedButton, { borderColor: colors.interactiveBorder }]}
-        onPress={() => openEmojiPicker(handleAddReaction)}
+        onPress={() => openEmojiPicker(handleEmojiSelectOverride)}
       >
         <Text style={[styles.addReactionText, { color: colors.interactiveIcon }]}>
           +
@@ -183,7 +151,7 @@ export const EmojiReactions: React.FC<EmojiReactionsProps> = ({
     <>
       <TouchableOpacity
         style={[styles.unifiedButton, { borderColor: colors.interactiveBorder }]}
-        onPress={() => openEmojiPicker(handleAddReaction)}
+        onPress={() => openEmojiPicker(handleEmojiSelectOverride)}
       >
         <Text style={[styles.addReactionText, { color: colors.interactiveIcon }]}>
           +
@@ -191,7 +159,13 @@ export const EmojiReactions: React.FC<EmojiReactionsProps> = ({
       </TouchableOpacity>
 
       {visibleEmojis.map(([emoji, reaction]) =>
-        renderEmojiReaction(emoji, reaction)
+        <EmojiReactionButton
+          key={emoji}
+          emoji={emoji}
+          reaction={reaction}
+          onEmojiPress={handleEmojiPress}
+          isLoading={isLoading}
+        />
       )}
 
       {hasMoreEmojis && (
@@ -235,28 +209,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  emojiButton: {
-    // Uses unifiedButton as base
-  },
-  emojiText: {
-    ...text.lg,
-    flexShrink: 1,
-  },
-  countText: {
-    ...text.sm,
-    ...text.medium,
-    marginLeft: spacing(0.5),
-    flexShrink: 0,
-  },
-  moreButton: {
-    // Uses unifiedButton as base
-  },
   moreText: {
     ...text.sm,
     ...text.medium,
-  },
-  addReactionButton: {
-    // Uses unifiedButton as base
   },
   addReactionText: {
     ...text.lg,

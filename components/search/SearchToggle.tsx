@@ -70,7 +70,7 @@ export const SearchToggle: React.FC<SearchToggleProps> = ({
                 : colors.text
             }
           ]}>
-            Preference Search7
+            Preference Search8
           </Text>
         </TouchableOpacity>
       </View>

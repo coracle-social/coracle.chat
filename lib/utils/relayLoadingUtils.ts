@@ -1,4 +1,4 @@
-import { load, request } from '@welshman/net';
+import { load, Pool, request, SocketStatus } from '@welshman/net';
 import { Router } from '@welshman/router';
 import { Platform } from 'react-native';
 
@@ -13,6 +13,29 @@ export interface RelayLoadingOptions {
   useLoad?: boolean;
   useRequest?: boolean;
 }
+
+export interface RelayStatus {
+  url: string;
+  status: SocketStatus;
+  connected: boolean;
+}
+
+/**
+ * Get all relays in the pool with their status
+ */
+export const getAllRelaysWithStatus = (): RelayStatus[] => {
+  const pool = Pool.get();
+  const allRelays = Array.from(pool._data.keys());
+
+  return allRelays.map(url => {
+    const socket = pool._data.get(url);
+    return {
+      url,
+      status: socket?.status || SocketStatus.Closed,
+      connected: socket?.status === SocketStatus.Open
+    };
+  });
+};
 
 /**
  * Get relay URLs using merge
@@ -50,7 +73,7 @@ export const loadFromRelays = async (options: RelayLoadingOptions): Promise<void
   } = options;
 
   const relayUrls = relays || getRelayUrls();
-
+  console.log('relayUrls', relayUrls);
   // Determine loading strategy based on platform or explicit options
   const shouldUseLoad = useLoad !== undefined ? useLoad : Platform.OS === 'web';
   const shouldUseRequest = useRequest !== undefined ? useRequest : Platform.OS !== 'web';

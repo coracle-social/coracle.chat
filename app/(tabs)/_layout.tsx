@@ -75,10 +75,16 @@ export default function TabLayout() {
   const tabHistory = useRef<TabRoutes[]>([]);
   const isNavigatingBack = useRef(false);
 
-  const getCurrentTab = (): TabRoutes => {
-    const currentSegment = last(segments) as TabRoutes
-    if (Object.values(TabRoutes).includes(currentSegment)) {
-      return currentSegment;
+    const getCurrentTab = (): TabRoutes => {
+    const currentSegment = last(segments);
+
+    // Handle nested settings routes - if we're in settings sub-routes, stay on settings tab
+    if (currentSegment === 'relays' || currentSegment === 'usage' || currentSegment === 'profile') {
+      return TabRoutes.SETTINGS;
+    }
+
+    if (Object.values(TabRoutes).includes(currentSegment as TabRoutes)) {
+      return currentSegment as TabRoutes;
     }
     return TabRoutes.DASHBOARD;
   };
@@ -195,7 +201,6 @@ export default function TabLayout() {
             <Link href="/modal" asChild>
               <OptionButton
                 title={isLoggedIn ? 'Logout' : 'Login'}
-                onPress={() => {}} // Link handles the navigation
                 icon={isLoggedIn ? 'log-out' : 'log-in'}
                 variant="secondary"
                 size="medium"

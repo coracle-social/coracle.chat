@@ -33,7 +33,7 @@ export const ProfileMini: React.FC<ProfileMiniProps> = ({
   const colors = useThemeColors();
   const shimmerConfig = useShimmerConfig();
 
-  const { isLoading, profile: profileData, basicInfo, error } = useProfileLoading(
+  const { isLoading, profile: profileData, basicInfo} = useProfileLoading(
     pubkey,
     relays,
     initialProfileData

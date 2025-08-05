@@ -4,7 +4,6 @@ import { StandardTextInput } from '@/lib/components/StandardTextInput';
 import { useThemeColors } from '@/lib/theme/ThemeContext';
 import { CommentData, getAllComments, getTopLevelComments } from '@/lib/utils/commentUtils';
 import { publishComment } from '@/lib/utils/dataHandling';
-import { simpleProfileLoader } from '@/lib/utils/profileBatchLoader';
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CommentView } from './CommentView';
@@ -25,7 +24,6 @@ export const InlineCommentView: React.FC<InlineCommentViewProps> = ({
   onLoginRequired
 }) => {
   const colors = useThemeColors();
-  const { requestProfile } = simpleProfileLoader;
 
   const [commentData, setCommentData] = useState<CommentData | null>(null);
   const [allComments, setAllComments] = useState<any[]>([]);
@@ -53,15 +51,6 @@ export const InlineCommentView: React.FC<InlineCommentViewProps> = ({
 
     return Array.from(pubkeys);
   }, [showAllComments, allComments, commentData]);
-
-  // Load profiles for comment authors
-  useEffect(() => {
-    if (commentPubkeys.length > 0) {
-      commentPubkeys.forEach(pubkey => {
-        simpleProfileLoader.requestProfile({ pubkey });
-      });
-    }
-  }, [commentPubkeys, requestProfile]);
 
   useEffect(() => {
     if (isVisible) {

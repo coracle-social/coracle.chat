@@ -8,8 +8,8 @@ import { useEffect, useState } from 'react';
 export interface UseDefaultSearchReturn {
   // State
   searchTerm: string;
-  profileEvents: BareEvent[]; // Changed from SearchResult[] to BareEvent[]
-  contentEvents: BareEvent[]; // Changed from SearchResult[] to BareEvent[]
+  profileEvents: BareEvent[];
+  contentEvents: BareEvent[];
   isSearching: boolean;
   isLoadingMore: boolean;
   selectedFilters: string[];

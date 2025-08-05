@@ -61,7 +61,13 @@ export const ContentResultActions: React.FC<ContentResultActionsProps> = ({
       </View>
 
       {/* Emoji Reactions */}
-      <EmojiReactions result={result} maxVisible={4} />
+      <EmojiReactions
+        event={result.event}
+        authorPubkey={result.authorPubkey}
+        emojiCount={result.emojiCount}
+        replyCount={result.replyCount}
+        maxVisible={4}
+      />
     </View>
   );
 

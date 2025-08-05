@@ -5,6 +5,7 @@ import { BareEvent } from '@/lib/types/search';
 import { extractNostrEntities } from '@/lib/utils/contentEntityRenderer';
 import { parseContent } from '@/lib/utils/contentParser';
 import { formatTimestampDate } from '@/lib/utils/formatNums';
+import { sortBy } from '@welshman/lib';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { ContentMini } from './ContentMini';
@@ -64,16 +65,14 @@ export const CommentView: React.FC<CommentViewProps> = ({
       let elementIndex = 0;
 
       // Sort entities by their position in the text
-      const allEntities = [
+      const allEntities = sortBy(
+        (entity) => processedText.indexOf(entity.raw),
+        [
         ...profiles.map(profile => ({ ...profile, type: 'profile' as const })),
         ...events.map(event => ({ ...event, type: 'event' as const })),
         ...hashtags.map(hashtag => ({ raw: hashtag, type: 'hashtag' as const })),
         ...urls.map(url => ({ raw: url, type: 'url' as const }))
-      ].sort((a, b) => {
-        const aIndex = processedText.indexOf(a.raw);
-        const bIndex = processedText.indexOf(b.raw);
-        return aIndex - bIndex;
-      });
+      ]);
 
       allEntities.forEach(entity => {
         const index = processedText.indexOf(entity.raw);

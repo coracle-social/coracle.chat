@@ -1,5 +1,5 @@
 import { repository } from '@welshman/app';
-import { Filter, getReplyTags, NOTE } from '@welshman/util';
+import { Filter, isChildOf, NOTE } from '@welshman/util';
 import { loadCommentsForEvents } from './relayLoadingUtils';
 
 export interface CommentThread {
@@ -129,16 +129,12 @@ export const getAllComments = async (eventId: string): Promise<any[]> => {
   return sortedComments;
 };
 
-export const isTopLevelComment = (comment: any, originalEventId: string): boolean => {
-  const { roots } = getReplyTags(comment.tags);
-  return roots.some(tag => tag[1] === originalEventId);
+export const isTopLevelComment = (comment: any, originalEvent: any): boolean => {
+  return isChildOf(comment, originalEvent);
 };
 
-export const getRepliesForComment = (commentId: string, allReplies: any[]): any[] => {
-  return allReplies.filter(reply => {
-    const { replies } = getReplyTags(reply.tags);
-    return replies.some(tag => tag[1] === commentId);
-  }).sort((a, b) => a.created_at - b.created_at);
+export const getRepliesForComment = (comment: any, allReplies: any[]): any[] => {
+  return allReplies.filter(reply => isChildOf(reply, comment)).sort((a, b) => a.created_at - b.created_at);
 };
 
 export const getTotalReplyCount = (commentId: string, allReplies: any[]): number => {

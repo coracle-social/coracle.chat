@@ -1,9 +1,14 @@
+import { useStore } from '@/lib/stores/useWelshmanStore2';
 import { BareEvent } from '@/lib/types/search';
-import { simpleProfileLoader } from '@/lib/utils/profileBatchLoader';
+import { deriveProfile } from '@welshman/app';
 import { useEffect, useState } from 'react';
 
+export const useProfile = (pubkey: string, relays?: string[]) => {
+  const profileStore = deriveProfile(pubkey, relays);
+  return useStore(profileStore);
+}
+
 interface ProfileLoadingState {
-  pubkey: string;
   isLoading: boolean;
   profile: BareEvent | undefined;
   basicInfo: {
@@ -15,8 +20,8 @@ interface ProfileLoadingState {
 }
 
 export const useProfileLoading = (pubkey: string, relays?: string[], initialProfile?: BareEvent) => {
+  const [profile] = useProfile(pubkey, relays);
   const [state, setState] = useState<ProfileLoadingState>({
-    pubkey,
     isLoading: !initialProfile,
     profile: initialProfile || undefined,
     basicInfo: initialProfile ? {
@@ -29,8 +34,7 @@ export const useProfileLoading = (pubkey: string, relays?: string[], initialProf
 
   useEffect(() => {
     if (initialProfile) {
-      setState(prev => ({
-        ...prev,
+      setState({
         isLoading: false,
         profile: initialProfile,
         basicInfo: {
@@ -39,59 +43,31 @@ export const useProfileLoading = (pubkey: string, relays?: string[], initialProf
           picture: initialProfile.event.picture,
         },
         error: undefined,
-      }));
+      });
       return;
     }
 
-    // Skip if pubkey hasn't changed
-    if (state.pubkey === pubkey && state.profile) {
-      return;
+    // Use the profile from the derived store
+    if (profile) {
+      setState({
+        isLoading: false,
+        profile: profile as BareEvent,
+        basicInfo: {
+          name: profile.name,
+          displayName: profile.display_name,
+          picture: profile.picture,
+        },
+        error: undefined,
+      });
+    } else {
+      setState({
+        isLoading: true,
+        profile: undefined,
+        basicInfo: undefined,
+        error: undefined,
+      });
     }
-
-    // Update pubkey and start loading
-    setState(prev => ({
-      ...prev,
-      pubkey,
-      isLoading: true,
-      profile: undefined,
-      basicInfo: undefined,
-      error: undefined,
-    }));
-
-    const loadProfile = async () => {
-      try {
-        const profile = await simpleProfileLoader.requestProfile({ pubkey, relays });
-
-        if (profile) {
-          setState(prev => ({
-            ...prev,
-            isLoading: false,
-            profile: profile,
-            basicInfo: {
-              name: profile.event.name,
-              displayName: profile.event.display_name,
-              picture: profile.event.picture,
-            },
-            error: undefined,
-          }));
-        } else {
-          setState(prev => ({
-            ...prev,
-            isLoading: false,
-            error: new Error('Profile not found'),
-          }));
-        }
-      } catch (error) {
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          error,
-        }));
-      }
-    };
-
-    loadProfile();
-  }, [pubkey, relays, initialProfile]);
+  }, [pubkey, relays, initialProfile, profile]);
 
   return state;
 };

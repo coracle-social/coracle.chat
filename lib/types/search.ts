@@ -47,7 +47,7 @@ export interface ProfileSearchOptions {
  * Result of a profile search operation
  */
 export interface ProfileSearchResult {
-  results: BareEvent[]; // Changed from SearchResult[] to BareEvent[]
+  results: BareEvent[];
   newOffset: number;
 }
 

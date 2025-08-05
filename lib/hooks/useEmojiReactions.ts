@@ -1,8 +1,8 @@
-import { EmojiReactionGroup, getEmojiReactions } from '@/lib/utils/emojiReactionUtils';
+import { getEmojiReactions } from '@/lib/utils/emojiReactionUtils';
 import { useEffect, useState } from 'react';
 
 export const useEmojiReactions = (eventId: string) => {
-  const [emojiReactions, setEmojiReactions] = useState<EmojiReactionGroup>({});
+  const [emojiReactions, setEmojiReactions] = useState<Record<string, any>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<number>(Date.now());
 
@@ -16,8 +16,8 @@ export const useEmojiReactions = (eventId: string) => {
         setTimeout(() => reject(new Error('Loading timeout')), 10000); // 10 second timeout
       });
 
-            const reactionsPromise = getEmojiReactions(eventId);
-      const reactions = await Promise.race([reactionsPromise, timeoutPromise]) as EmojiReactionGroup;
+      const reactionsPromise = getEmojiReactions(eventId);
+      const reactions = await Promise.race([reactionsPromise, timeoutPromise]) as Record<string, any>;
 
       console.log(`[USE-EMOJI-REACTIONS] Loaded ${Object.keys(reactions).length} reaction types for event: ${eventId}`);
       setEmojiReactions(reactions);
@@ -44,9 +44,8 @@ export const useEmojiReactions = (eventId: string) => {
 
   const removeEmojiReactionFromState = (emoji: string) => {
     setEmojiReactions(prev => {
-      const newReactions = { ...prev };
-      delete newReactions[emoji];
-      return newReactions;
+      const { [emoji]: removed, ...rest } = prev;
+      return rest;
     });
     setLastUpdated(Date.now());
   };
@@ -54,8 +53,6 @@ export const useEmojiReactions = (eventId: string) => {
   useEffect(() => {
     loadEmojiReactions();
   }, [eventId]);
-
-
 
   return {
     emojiReactions,

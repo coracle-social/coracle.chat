@@ -1,10 +1,8 @@
 import { BorderRadius } from '@/core/env/BorderRadius';
 import { Shadows } from '@/core/env/Shadows';
 import { spacing } from '@/core/env/Spacing';
-import { Typography } from '@/core/env/Typography';
 import Slider from '@/lib/components/Slider';
 import { useThemeColors } from '@/lib/theme/ThemeContext';
-import { Text } from '@/lib/theme/Themed';
 import Feather from '@expo/vector-icons/Feather';
 import React, { useRef, useState } from 'react';
 import {
@@ -16,6 +14,7 @@ import {
   UIManager,
   View,
 } from 'react-native';
+import { Card, List } from 'react-native-paper';
 
 interface SliderItem {
   imageUrl: string;
@@ -78,49 +77,34 @@ export default function ExpandableSlider({
   });
 
   return (
-    <View
+    <Card
       style={[
         styles.container,
         {
           backgroundColor: colors.surface,
-          borderColor: colors.primary,
-          borderWidth: 2,
-          shadowColor: colors.text,
-          shadowOffset: {
-            width: 0,
-            height: 2,
-          },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 3,
-        },
+        }
       ]}
     >
-      <TouchableOpacity
-        style={styles.header}
-        onPress={toggleExpanded}
-        activeOpacity={0.7}
-      >
-        <View style={styles.titleContainer}>
-          {label && (
-            <View
-              style={[
-                styles.labelContainer,
-                {
-                  backgroundColor: colors.secondary,
-                },
-              ]}
-            >
-              <Text style={[styles.labelText, { color: colors.surface }]}>
-                {label}
-              </Text>
-            </View>
+      <TouchableOpacity onPress={toggleExpanded} activeOpacity={0.7}>
+        <Card.Title
+          title={title}
+          subtitle={label}
+          titleStyle={{ color: colors.text }}
+          subtitleStyle={{ color: colors.placeholder }}
+          left={(props) => <List.Icon {...props} icon={icon} color={colors.primary} />}
+          right={(props) => (
+            <Animated.View style={{
+              transform: [{ rotate: chevronInterpolate }],
+              width: 24,
+              height: 24,
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginRight: spacing(2)
+            }}>
+              <List.Icon {...props} icon="chevron-down" color={colors.primary} />
+            </Animated.View>
           )}
-        <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-        </View>
-        <Animated.View style={{ transform: [{ rotate: chevronInterpolate }] }}>
-          <Feather name={icon} size={20} color={colors.primary} />
-        </Animated.View>
+        />
       </TouchableOpacity>
 
       <View
@@ -134,14 +118,12 @@ export default function ExpandableSlider({
           }
         }}
       >
-        <View style={styles.contentContainer}>
+        <Card.Content style={{ paddingBottom: spacing(4) }}>
           <View
             style={[
               styles.slidersWrapper,
               {
                 backgroundColor: colors.surfaceVariant,
-                borderColor: colors.secondary,
-                borderWidth: 1,
               },
             ]}
           >
@@ -155,18 +137,16 @@ export default function ExpandableSlider({
               />
             ))}
           </View>
-        </View>
+        </Card.Content>
       </View>
 
       <Animated.View style={{ height: animatedHeight, overflow: 'hidden' }}>
-        <View style={styles.contentContainer}>
+        <Card.Content style={{ paddingBottom: spacing(4) }}>
           <View
             style={[
               styles.slidersWrapper,
               {
                 backgroundColor: colors.surfaceVariant,
-                borderColor: colors.secondary,
-                borderWidth: 1,
               },
             ]}
           >
@@ -180,9 +160,9 @@ export default function ExpandableSlider({
               />
             ))}
           </View>
-        </View>
+        </Card.Content>
       </Animated.View>
-    </View>
+    </Card>
   );
 }
 
@@ -190,38 +170,10 @@ const styles = StyleSheet.create({
   container: {
     marginHorizontal: spacing(4),
     marginVertical: spacing(2),
-    borderRadius: BorderRadius.md,
-    overflow: 'hidden',
     ...Shadows.medium,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing(4),
-  },
-  titleContainer: {
-    flex: 1,
-    alignItems: 'flex-start',
-  },
-  title: {
-    ...Typography.button,
-  },
-  contentContainer: {
-    paddingHorizontal: spacing(4),
-    paddingVertical: spacing(4),
   },
   slidersWrapper: {
     borderRadius: BorderRadius.sm,
     padding: spacing(1),
-  },
-  labelContainer: {
-    paddingVertical: spacing(0.5),
-    paddingHorizontal: spacing(1.5),
-    borderRadius: BorderRadius.xs,
-    marginBottom: spacing(1),
-  },
-  labelText: {
-    ...Typography.caption,
   },
 });

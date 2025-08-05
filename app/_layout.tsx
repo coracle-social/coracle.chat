@@ -5,12 +5,14 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { Platform, View } from 'react-native';
+import { Provider as PaperProvider } from 'react-native-paper';
 import 'react-native-reanimated';
 
 import { MetaConfig } from '@/core/env/MetaConfig';
 import { initializeWelshmanStorage } from '@/core/state/welshman-storage';
 import { OverFlowReader } from '@/lib/components/OverFlowReader';
 import { PopupManager } from '@/lib/components/popups/PopupManager';
+import { usePaperTheme } from '@/lib/theme/PaperTheme';
 import { RNEUIThemeWrapper } from '@/lib/theme/RNEUIThemeProvider';
 import { ThemeProvider as AppThemeProvider, useTheme } from '@/lib/theme/ThemeContext';
 import { routerContext } from '@welshman/router';
@@ -118,19 +120,22 @@ function ThemeProviderWrapper() {
   const { isDark, getColors } = useTheme();
   const colorScheme = isDark ? 'dark' : 'light';
   const colors = getColors();
+  const paperTheme = usePaperTheme();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <OverFlowReader>
-        <View style={{ flex: 1, backgroundColor: colors.background }}>
-          <Stack>
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="(modals)" options={{ presentation: 'modal', headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: true, title: '' }} />
-          </Stack>
-        </View>
-      </OverFlowReader>
-    </ThemeProvider>
+    <PaperProvider theme={paperTheme}>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <OverFlowReader>
+          <View style={{ flex: 1, backgroundColor: colors.background }}>
+            <Stack>
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="(modals)" options={{ presentation: 'modal', headerShown: false }} />
+              <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: true, title: '' }} />
+            </Stack>
+          </View>
+        </OverFlowReader>
+      </ThemeProvider>
+    </PaperProvider>
   );
 }

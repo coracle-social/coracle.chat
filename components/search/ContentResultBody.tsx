@@ -11,6 +11,7 @@ import { extractTitle, parseContent } from '@/lib/utils/contentParser';
 import { ImageSizingPresets } from '@/lib/utils/imageHandling';
 
 import { ExternalLink } from '@/lib/components/ExternalLink';
+import { sortBy } from '@welshman/lib';
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { ContentMini } from './ContentMini';
@@ -68,16 +69,16 @@ export const ContentResultBody: React.FC<ContentResultBodyProps> = ({
       let elementIndex = 0;
 
       // Combine all entities (profiles, events, hashtags, URLs) and sort by position
-      const allEntities = [
-        ...profiles.map(profile => ({ ...profile, type: 'profile' as const })),
-        ...events.map(event => ({ ...event, type: 'event' as const })),
-        ...hashtags.map(hashtag => ({ raw: hashtag, type: 'hashtag' as const })),
-        ...urls.map(url => ({ raw: url, type: 'url' as const }))
-      ].sort((a, b) => {
-        const aIndex = processedText.indexOf(a.raw);
-        const bIndex = processedText.indexOf(b.raw);
-        return aIndex - bIndex;
-      });
+      const allEntities = sortBy(
+        (entity) => processedText.indexOf(entity.raw),
+        [
+          ...profiles.map(profile => ({ ...profile, type: 'profile' as const })),
+          ...events.map(event => ({ ...event, type: 'event' as const })),
+          ...hashtags.map(hashtag => ({ raw: hashtag, type: 'hashtag' as const })),
+          ...urls.map(url => ({ raw: url, type: 'url' as const }))
+        ]
+      );
+
 
       allEntities.forEach(entity => {
         const index = processedText.indexOf(entity.raw);
