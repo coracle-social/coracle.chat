@@ -1,15 +1,15 @@
 import { BorderRadius } from '@/core/env/BorderRadius';
 import { spacing } from '@/core/env/Spacing';
 import { useThemeColors } from '@/lib/theme/ThemeContext';
-import { Text } from '@/lib/theme/Themed';
 import { common, text } from '@/lib/utils/styleUtils';
 import Feather from '@expo/vector-icons/Feather';
 import React from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { Button } from 'react-native-paper';
 
 interface OptionButtonProps {
   title: string;
-  onPress: () => void;
+  onPress?: () => void;
   icon: string;
   variant?: 'default' | 'primary' | 'secondary' | 'danger';
   size?: 'small' | 'medium' | 'large';
@@ -93,52 +93,57 @@ export const OptionButton: React.FC<OptionButtonProps> = ({
   const variantColors = getVariantColors();
   const sizeStyles = getSizeStyles();
 
+  const getButtonMode = () => {
+    switch (variant) {
+      case 'primary':
+        return 'contained';
+      case 'secondary':
+        return 'outlined';
+      case 'danger':
+        return 'contained';
+      default:
+        return 'outlined';
+    }
+  };
+
   return (
-    <TouchableOpacity
+    <Button
+      mode={getButtonMode()}
+      onPress={onPress}
+      disabled={disabled}
+      icon={({ color, size }) => (
+        <Feather
+          name={icon as any}
+          size={sizeStyles.iconSize}
+          color={variantColors.iconColor}
+        />
+      )}
       style={[
         styles.optionButton,
         {
-          backgroundColor: variantColors.backgroundColor,
-          borderColor: variantColors.borderColor,
-          paddingHorizontal: sizeStyles.paddingHorizontal,
-          paddingVertical: sizeStyles.paddingVertical,
           borderRadius: sizeStyles.borderRadius,
         },
-        disabled && styles.disabled,
         style,
       ]}
-      onPress={onPress}
-      disabled={disabled}
-      activeOpacity={0.8}
+      contentStyle={styles.buttonContent}
+      labelStyle={[
+        sizeStyles.textStyle,
+        { color: variantColors.textColor },
+      ]}
+      buttonColor={variant === 'primary' || variant === 'danger' ? variantColors.backgroundColor : undefined}
+      textColor={variantColors.textColor}
     >
-      <Feather
-        name={icon as any}
-        size={sizeStyles.iconSize}
-        color={variantColors.iconColor}
-      />
-      <Text
-        style={[
-          styles.optionText,
-          sizeStyles.textStyle,
-          { color: variantColors.textColor },
-        ]}
-      >
-        {title}
-      </Text>
-    </TouchableOpacity>
+      {title}
+    </Button>
   );
 };
 
 const styles = StyleSheet.create({
   optionButton: {
     ...common.flexRow,
-    borderWidth: 1,
-    gap: spacing(2),
   },
-  optionText: {
-    ...text.medium,
-  },
-  disabled: {
-    opacity: 0.5,
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 });

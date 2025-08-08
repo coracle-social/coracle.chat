@@ -9,6 +9,7 @@ import { Drawer } from 'react-native-paper';
 
 enum SettingsRoutes {
   SETTINGS = 'settings',
+  GENERAL_SETTINGS = 'generalSettings',
   PROFILE = 'profile',
   RELAYS = 'relays',
   USAGE = 'usage',
@@ -39,6 +40,7 @@ export default function SettingsSidebar({
 
   const getCurrentSettingsRoute = (): SettingsRoutes => {
     const currentSegment = segments[segments.length - 1];
+    if (currentSegment === 'generalSettings') return SettingsRoutes.GENERAL_SETTINGS;
     if (currentSegment === 'profile') return SettingsRoutes.PROFILE;
     if (currentSegment === 'relays') return SettingsRoutes.RELAYS;
     if (currentSegment === 'usage') return SettingsRoutes.USAGE;
@@ -124,85 +126,85 @@ export default function SettingsSidebar({
 
   // Determine active route based on current segments
   const currentRoute = segments[segments.length - 1];
-  const isSettingsActive = currentRoute === 'settings' || segments.length === 2;
+  const isSettingsActive = currentRoute === 'settings' || currentRoute === 'generalSettings' || segments.length === 2;
   const isProfileActive = currentRoute === 'profile';
   const isRelaysActive = currentRoute === 'relays';
   const isUsageActive = currentRoute === 'usage';
 
   const handleSettingsPress = () => {
-    router.push('/(tabs)/settings');
-    onSettingsPress?.();
+      router.push('/(tabs)/settings/generalSettings');
+      onSettingsPress?.();
   };
 
   const handleProfilePress = () => {
-    router.push('/(tabs)/settings/profile');
-    onProfilePress?.();
+      router.push('/(tabs)/settings/profile');
+      onProfilePress?.();
   };
 
   const handleRelaysPress = () => {
-    router.push('/(tabs)/settings/relays');
-    onRelaysPress?.();
+      router.push('/(tabs)/settings/relays');
+      onRelaysPress?.();
   };
 
   const handleUsagePress = () => {
-    router.push('/(tabs)/settings/usage');
-    onUsagePress?.();
+      router.push('/(tabs)/settings/usage');
+      onUsagePress?.();
   };
 
-  return (
-    <View>
-      <View style={styles.drawerItemWrapper}>
-        <Drawer.Item
-          icon="cog"
-          label="Settings"
-          active={isSettingsActive}
-          onPress={handleSettingsPress}
-          style={[
-            styles.drawerItem,
-            isSettingsActive && { backgroundColor: colors.activeTabBackground }
-          ]}
-          theme={paperTheme}
-        />
-      </View>
-      <View style={styles.drawerItemWrapper}>
-        <Drawer.Item
-          icon="account"
-          label="Profile"
-          active={isProfileActive}
-          onPress={handleProfilePress}
-          style={[
-            styles.drawerItem,
-            isProfileActive && { backgroundColor: colors.activeTabBackground }
-          ]}
-          theme={paperTheme}
-        />
-      </View>
-      <View style={styles.drawerItemWrapper}>
-        <Drawer.Item
-          icon="wifi"
-          label="Relays"
-          active={isRelaysActive}
-          onPress={handleRelaysPress}
-          style={[
-            styles.drawerItem,
-            isRelaysActive && { backgroundColor: colors.activeTabBackground }
-          ]}
-          theme={paperTheme}
-        />
-      </View>
-      <View style={styles.drawerItemWrapper}>
-        <Drawer.Item
-          icon="chart-box"
-          label="Usage"
-          active={isUsageActive}
-          onPress={handleUsagePress}
-          style={[
-            styles.drawerItem,
-            isUsageActive && { backgroundColor: colors.activeTabBackground }
-          ]}
-          theme={paperTheme}
-        />
-      </View>
+    return (
+      <View>
+        <View style={styles.drawerItemWrapper}>
+          <Drawer.Item
+            icon="cog"
+            label="Settings"
+            active={isSettingsActive}
+            onPress={handleSettingsPress}
+            style={[
+              styles.drawerItem,
+              isSettingsActive && { backgroundColor: colors.activeTabBackground }
+            ]}
+            theme={paperTheme}
+          />
+        </View>
+        <View style={styles.drawerItemWrapper}>
+          <Drawer.Item
+            icon="account"
+            label="Profile"
+            active={isProfileActive}
+            onPress={handleProfilePress}
+            style={[
+              styles.drawerItem,
+              isProfileActive && { backgroundColor: colors.activeTabBackground }
+            ]}
+            theme={paperTheme}
+          />
+        </View>
+        <View style={styles.drawerItemWrapper}>
+          <Drawer.Item
+            icon="wifi"
+            label="Relays"
+            active={isRelaysActive}
+            onPress={handleRelaysPress}
+            style={[
+              styles.drawerItem,
+              isRelaysActive && { backgroundColor: colors.activeTabBackground }
+            ]}
+            theme={paperTheme}
+          />
+        </View>
+        <View style={styles.drawerItemWrapper}>
+          <Drawer.Item
+            icon="chart-box"
+            label="Usage"
+            active={isUsageActive}
+            onPress={handleUsagePress}
+            style={[
+              styles.drawerItem,
+              isUsageActive && { backgroundColor: colors.activeTabBackground }
+            ]}
+            theme={paperTheme}
+          />
+        </View>
     </View>
   );
 }

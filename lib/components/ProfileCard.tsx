@@ -12,9 +12,11 @@ import { changePicture, updateProfile } from '@/lib/utils/dataHandling';
 import { Button } from '@rneui/themed';
 import { pubkey, userProfile } from '@welshman/app';
 import { displayProfile, displayPubkey } from '@welshman/util';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Dimensions, Keyboard, Platform, StyleSheet, TouchableWithoutFeedback, View } from 'react-native';
+import ConfettiCannon from 'react-native-confetti-cannon';
 import ProfilePicture from './ProfilePicture';
+
 
 export default function ProfileCard() {
   const colors = useThemeColors();
@@ -42,6 +44,7 @@ export default function ProfileCard() {
   const saveButtonFontSize = isMobile ? 12 : 14;
   const saveButtonPaddingVertical = isMobile ? 6 : 8;
   const saveButtonPaddingHorizontal = isMobile ? 16 : 20;
+  const confettiRef = useRef<ConfettiCannon | null>(null);
 
   const handleAboutChange = (text: string) => {
     setAboutText(text);
@@ -49,8 +52,7 @@ export default function ProfileCard() {
 
   const handleImageChange = (newImageUrl: string) => {
     console.log('Profile image changed to:', newImageUrl);
-    // UI will update automatically through the store
-    //kept for possible UI like confetti
+    confettiRef.current?.start();
   };
 
   const handleImageSave = async (newImageUrl: string) => {
@@ -86,6 +88,17 @@ export default function ProfileCard() {
         paddingVertical: verticalPadding
       }
     ]}>
+      <View style={{ opacity: 0, position: 'absolute' }}>
+        <ConfettiCannon
+        count={50}
+        origin={{ x: -10, y: 0 }}
+        autoStart={false}
+        fadeOut
+        ref={(ref) => {
+          confettiRef.current = ref;
+        }}
+      />
+      </View>
       <View style={styles.leftSide}>
         <View style={styles.pubkeyContainer}>
           <PubkeyDisplay
@@ -132,7 +145,7 @@ export default function ProfileCard() {
 
       <View style={styles.rightSide}>
         <ProfilePicture
-          avatarUrl={profile?.picture || "https://via.placeholder.com/90"}
+          avatarUrl={profile?.picture || ""}
           size={avatarSize}
           onImageChange={handleImageChange}
           onImageSave={handleImageSave}

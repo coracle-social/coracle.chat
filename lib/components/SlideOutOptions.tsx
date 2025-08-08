@@ -1,13 +1,8 @@
 import { useThemeColors } from '@/lib/theme/ThemeContext';
-import Feather from '@expo/vector-icons/Feather';
+import { Text } from '@/lib/theme/Themed';
 import { useRef, useState } from 'react';
-import {
-  Animated,
-  StyleSheet,
-  TouchableOpacity,
-  View
-} from 'react-native';
-import { OptionButton } from './OptionButton';
+import { Animated, StyleSheet, View } from 'react-native';
+import { Card, IconButton } from 'react-native-paper';
 
 interface ButtonConfig {
   title: string;
@@ -55,64 +50,51 @@ export default function SlideOutOptions({
           styles.optionsContainer,
           {
             transform: [{ translateX: slideInterpolate }],
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
+            flexDirection: 'row',
+            gap: 1,
           },
         ]}
       >
         {buttons.map((button, index) => (
-          <OptionButton
-            key={index}
-            title={button.title}
-            onPress={() => {
-              button.onPress();
-              toggleExpanded();
-            }}
-            icon={button.icon}
-            variant="secondary"
-            size="medium"
-          />
+          <Card key={index} style={{ backgroundColor: colors.surface }}>
+            <Card.Content style={{ padding: 4, alignItems: 'center', justifyContent: 'center'}}>
+              <IconButton
+                icon="plus"
+                iconColor={colors.primary}
+                size={20}
+                onPress={() => {
+                  button.onPress();
+                  toggleExpanded();
+                }}
+              />
+              <Text style={{ color: colors.text, fontSize: 8, textAlign: 'center' }}>
+                Add {button.title}
+              </Text>
+            </Card.Content>
+          </Card>
         ))}
       </Animated.View>
 
-      <TouchableOpacity
-        style={[
-          styles.toggleButton,
-          {
-            backgroundColor: colors.primary,
-            borderColor: colors.border,
-          },
-        ]}
+      <IconButton
+        icon={icon}
+        iconColor={colors.text}
+        size={20}
         onPress={toggleExpanded}
-      >
-        <Feather name={icon as any} size={20} color={colors.surface} />
-      </TouchableOpacity>
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flexDirection: 'row',
+    alignItems: 'center',
     position: 'relative',
-    alignItems: 'flex-end',
   },
   optionsContainer: {
     position: 'absolute',
-    top: 0,
-    right: 50, // Position options to the left of the button
-    flexDirection: 'row',
-    borderRadius: 8,
-    borderWidth: 1,
-    padding: 8,
-    gap: 8,
+    right: 50,
+    alignSelf: 'center',
     zIndex: 1000,
-  },
-  toggleButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
   },
 });

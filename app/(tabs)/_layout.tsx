@@ -79,7 +79,7 @@ export default function TabLayout() {
     const currentSegment = last(segments);
 
     // Handle nested settings routes - if we're in settings sub-routes, stay on settings tab
-    if (currentSegment === 'relays' || currentSegment === 'usage' || currentSegment === 'profile') {
+    if (segments.length > 2 && segments[1] === 'settings') {
       return TabRoutes.SETTINGS;
     }
 
@@ -122,8 +122,13 @@ export default function TabLayout() {
 
     const handleBackPress = () => {
       const currentTab = getCurrentTab();
-      console.log('🔧 Android back button pressed! Current tab:', currentTab);
-      console.log('🔧 Android: History stack:', tabHistory.current);
+      const currentSegment = last(segments);
+
+      // If we're in settings sub-pages, let the default back button handle it
+      if (currentTab === TabRoutes.SETTINGS && segments.length > 2) {
+        console.log('🔧 Android: In settings sub-page, letting default back handle it');
+        return false; // Let default back button handle settings navigation
+      }
 
       // If we have history, navigate back to the previous tab
       if (tabHistory.current.length > 0) {

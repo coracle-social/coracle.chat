@@ -15,6 +15,7 @@ import { sortBy } from '@welshman/lib';
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { ContentMini } from './ContentMini';
+import { ContentWarning } from './ContentWarning';
 import { Hashtag } from './Hashtag';
 import { MediaContent } from './MediaContent';
 import { ProfileMini } from './ProfileMini';
@@ -36,7 +37,7 @@ export const ContentResultBody: React.FC<ContentResultBodyProps> = ({
 }) => {
   const colors = useThemeColors();
   const { currentStrategy } = useImageSizing();
-  const { postLength } = useUserPreferences();
+  const { postLength, hideSensitiveContent } = useUserPreferences();
 
   // Extract content from event
   const content = result.event.content || '';
@@ -45,7 +46,6 @@ export const ContentResultBody: React.FC<ContentResultBodyProps> = ({
   // Parse content to extract media and website URLs
   const parsedContent = parseContent(contentText)
 
-  // Extract Nostr entities using the utility
   const { profiles, events, hashtags, urls } = extractNostrEntities(
     contentText,
     result.event.tags || [],
@@ -228,24 +228,40 @@ export const ContentResultBody: React.FC<ContentResultBodyProps> = ({
   };
 
   return (
-    <View style={styles.container}>
-      {shouldLimitHeight ? (
-        <ScrollView
-          style={[styles.scrollableContainer, { maxHeight: maxContentHeight }]}
-          showsVerticalScrollIndicator={false}
-        >
-          {renderContent()}
-        </ScrollView>
-      ) : (
-        renderContent()
-      )}
-    </View>
+    <ContentWarning
+      tags={result.event.tags || []}
+      hideSensitiveContent={hideSensitiveContent}
+    >
+      <View style={styles.container}>
+        {shouldLimitHeight ? (
+          <ScrollView
+            style={[styles.scrollableContainer, { maxHeight: maxContentHeight }]}
+            showsVerticalScrollIndicator={false}
+          >
+            {renderContent()}
+          </ScrollView>
+        ) : (
+          renderContent()
+        )}
+      </View>
+    </ContentWarning>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: spacing(3),
+    flex: 1,
+  },
+  debugButton: {
+    paddingVertical: spacing(2),
+    paddingHorizontal: spacing(3),
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: spacing(2),
+  },
+  debugButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   scrollableContainer: {
     // Styles for scrollable content container

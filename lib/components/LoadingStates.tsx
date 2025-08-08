@@ -35,15 +35,8 @@ export const LoadingStates: React.FC<LoadingStatesProps> = ({
     }
   };
 
-//temporary emojis until equivalent solar icons or other set
   const getIcon = () => {
     switch (type) {
-      case 'searching':
-        return '';
-      case 'loading-more':
-        return '';
-      case 'initial':
-        return '';
       case 'empty':
         return '📭';
       case 'error':

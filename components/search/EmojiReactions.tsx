@@ -1,17 +1,17 @@
 import { spacing } from '@/core/env/Spacing';
 import { useEmojiPickerPopup } from '@/lib/hooks/useEmojiPickerPopup';
-import { useEmojiReactions } from '@/lib/hooks/useEmojiReactions';
 import { useSlideUpPopup } from '@/lib/hooks/useSlideUpPopup';
+import { useStore } from '@/lib/stores/useWelshmanStore2';
 import { useThemeColors } from '@/lib/theme/ThemeContext';
 import { Text } from '@/lib/theme/Themed';
-import {
-  addEmojiReaction,
-  removeEmojiReaction
-} from '@/lib/utils/emojiReactionUtils';
+import { getEmojiReactions } from '@/lib/utils/emojiReactionUtils';
 import { common, text, withBorderRadius } from '@/lib/utils/styleUtils';
-import { pubkey } from '@welshman/app';
-import React, { useCallback, useState } from 'react';
-import { Alert, StyleSheet, TouchableOpacity } from 'react-native';
+import { pubkey, publishThunk, repository } from '@welshman/app';
+import { Router } from '@welshman/router';
+import { deriveEvents } from '@welshman/store';
+import { DELETE, makeEvent, REACTION } from '@welshman/util';
+import React, { useCallback, useEffect, useState } from 'react';
+import { StyleSheet, TouchableOpacity } from 'react-native';
 import { EmojiReactionButton } from './EmojiReactionButton';
 
 interface GenericEvent {
@@ -26,78 +26,80 @@ interface GenericEvent {
 
 interface EmojiReactionsProps {
   event: GenericEvent;
-  authorPubkey?: string;
-  emojiCount?: number;
-  replyCount?: number;
   maxVisible?: number; // Maximum number of emoji reactions to show before collapsing
 }
 
 export const EmojiReactions: React.FC<EmojiReactionsProps> = ({
   event,
-  authorPubkey,
-  emojiCount,
-  replyCount,
   maxVisible = 2
 }) => {
   const colors = useThemeColors();
   const [isLoading, setIsLoading] = useState(false);
   const [showAllEmojis, setShowAllEmojis] = useState(false);
   const { showPopup } = useSlideUpPopup();
-  const { openEmojiPicker, handleEmojiSelect } = useEmojiPickerPopup();
+  const { openEmojiPicker } = useEmojiPickerPopup();
+  const currentPubkey = useStore(pubkey);
 
-  const { emojiReactions, isLoading: isLoadingReactions, updateEmojiReaction, removeEmojiReactionFromState } = useEmojiReactions(event.id);
+  const reactions = deriveEvents(repository, {filters: [{kinds: [REACTION], "#e": [event.id]}]});
+  const [emojiReactions, setEmojiReactions] = useState<Record<string, any>>({});
+  const [isLoadingReactions, setIsLoadingReactions] = useState(false);
+
+  // Load emoji reactions once on mount
+  useEffect(() => {
+    const loadReactions = async () => {
+      try {
+        console.log(`[EMOJI-REACTIONS] Loading reactions for event: ${event.id}`);
+        setIsLoadingReactions(true);
+
+        // Add timeout to prevent infinite loading
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Loading timeout')), 10000); // 10 second timeout
+        });
+
+        const reactionsPromise = getEmojiReactions(event.id);
+        const reactions = await Promise.race([reactionsPromise, timeoutPromise]) as Record<string, any>;
+
+        console.log(`[EMOJI-REACTIONS] Loaded ${Object.keys(reactions).length} reaction types for event: ${event.id}`);
+        setEmojiReactions(reactions);
+      } catch (error) {
+        console.error('[EMOJI-REACTIONS] Error loading emoji reactions:', error);
+      } finally {
+        setIsLoadingReactions(false);
+      }
+    };
+
+    loadReactions();
+  }, [event.id]);
 
   const handleEmojiPress = async (emoji: string) => {
     console.log('[EMOJI-REACTIONS] handleEmojiPress called with emoji:', emoji);
-    if (isLoading) return;
-
     // Check if user is logged in
-    const currentUserPubkey = pubkey.get();
-    if (!currentUserPubkey) {
-      console.log('[EMOJI-REACTIONS] currentUserPubkey is false, showing popup');
+    if (!currentPubkey) {
+      console.log('[EMOJI-REACTIONS] currentPubkey is false, showing popup');
       showPopup('You must login to react', 'warning');
-      //wont show anything yet, i removed the popup components
-      //want a betteer solution with less code
-      //probably a popup just onthe center of scren isntead of in each component
+      //not currently working
       return;
     }
-    else {
-      console.log('[EMOJI-REACTIONS] isLoading is fal222se, continuing');
+
+    setIsLoading(true);
+
+    // Check if user already reacted by reading from repository
+    const reactionsData = reactions.get() || [];
+    const userReactions = reactionsData.filter((r: any) => r.pubkey === currentPubkey && r.content === emoji);
+    const userReacted = userReactions.length > 0;
+
+    if (userReacted) {
+      publishThunk({
+        event: makeEvent(DELETE, { tags: [["e", event.id]] }),
+        relays: Router.get().FromUser().getUrls()
+      });
+    } else {
+      publishThunk({
+        event: makeEvent(REACTION, { content: emoji, tags: [["e", event.id]] }),
+        relays: Router.get().FromUser().getUrls()
+      });
     }
-
-    try {
-      setIsLoading(true);
-      const userReacted = emojiReactions[emoji]?.userReacted || false;
-      console.log('[EMOJI-REACTIONS] User reacted:', userReacted, 'for emoji:', emoji);
-
-      if (userReacted) {
-        // Remove reaction
-        console.log('[EMOJI-REACTIONS] Removing reaction for emoji:', emoji);
-        await removeEmojiReaction(event, emoji);
-        const newCount = Math.max(0, (emojiReactions[emoji]?.count || 0) - 1);
-        const newUsers = (emojiReactions[emoji]?.users || []).filter((u: string) => u !== currentUserPubkey);
-
-              if (newCount === 0) {
-        removeEmojiReactionFromState(emoji);
-      } else {
-        updateEmojiReaction(emoji, newCount, false, newUsers);
-      }
-      } else {
-        // Add reaction
-        console.log('[EMOJI-REACTIONS] Adding reaction for emoji:', emoji);
-        await addEmojiReaction(event, emoji);
-        const currentCount = emojiReactions[emoji]?.count || 0;
-        const currentUsers = emojiReactions[emoji]?.users || [];
-        const newCount = currentCount + 1;
-        const newUsers = [...currentUsers, currentUserPubkey];
-        updateEmojiReaction(emoji, newCount, true, newUsers);
-      }
-    } catch (error) {
-      console.error('[EMOJI-REACTIONS] Error handling emoji reaction:', error);
-      Alert.alert('Error', 'Failed to update reaction. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    setIsLoading(false);
   };
 
   const handleAddReaction = async (emoji: string) => {
@@ -111,12 +113,10 @@ export const EmojiReactions: React.FC<EmojiReactionsProps> = ({
   // Override the handleEmojiSelect to use our local callback
   const handleEmojiSelectOverride = useCallback((emoji: string) => {
     handleAddReaction(emoji);
-  }, []);
+  }, [handleAddReaction]);
 
   const emojiEntries = Object.entries(emojiReactions);
-  // Auto-expand to show more emojis if there are more than maxVisible (approximately 2 lines worth)
-  const shouldAutoExpand = emojiEntries.length > maxVisible && emojiEntries.length <= maxVisible && !showAllEmojis;
-  const visibleEmojis = shouldAutoExpand || showAllEmojis ? emojiEntries : emojiEntries.slice(0, maxVisible);
+  const visibleEmojis = showAllEmojis ? emojiEntries : emojiEntries.slice(0, maxVisible);
   const hasMoreEmojis = emojiEntries.length > maxVisible && !showAllEmojis;
 
   // Show loading state when reactions are being loaded
@@ -162,7 +162,7 @@ export const EmojiReactions: React.FC<EmojiReactionsProps> = ({
         <EmojiReactionButton
           key={emoji}
           emoji={emoji}
-          reaction={reaction}
+          eventId={event.id}
           onEmojiPress={handleEmojiPress}
           isLoading={isLoading}
         />

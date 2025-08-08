@@ -1,3 +1,4 @@
+import { WebContainer } from '@/lib/components/WebContainer';
 import { usePopup } from '@/lib/hooks/usePopup';
 import { useThemeColors } from '@/lib/theme/ThemeContext';
 import { Text, View } from '@/lib/theme/Themed';
@@ -19,7 +20,7 @@ export default function DashboardScreen() {
       style={[styles.scrollContainer, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.scrollContent}
     >
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <WebContainer style={[styles.container, { backgroundColor: colors.background }]}>
         <Text style={[styles.title, { color: colors.text }]}>Dashboard</Text>
         <RNView style={[styles.separator, { backgroundColor: colors.divider }]} />
 
@@ -34,7 +35,7 @@ export default function DashboardScreen() {
         </View>
 
         {/* <NostrTest /> */}
-      </View>
+      </WebContainer>
     </ScrollView>
   );
 }

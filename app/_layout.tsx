@@ -15,6 +15,7 @@ import { PopupManager } from '@/lib/components/popups/PopupManager';
 import { usePaperTheme } from '@/lib/theme/PaperTheme';
 import { RNEUIThemeWrapper } from '@/lib/theme/RNEUIThemeProvider';
 import { ThemeProvider as AppThemeProvider, useTheme } from '@/lib/theme/ThemeContext';
+import { appContext } from '@welshman/app';
 import { routerContext } from '@welshman/router';
 import { RelayMode } from '@welshman/util';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -69,6 +70,9 @@ function RootLayoutNav() {
         relayCount: MetaConfig.DEFAULT_RELAYS.length + MetaConfig.SEARCH_RELAYS.length
       });
     }
+
+    // Use the public Coracle dufflepud instance
+    appContext.dufflepudUrl = 'https://dufflepud.coracle.social';
 
     // Configure default relays for the router
     routerContext.getDefaultRelays = () => [...MetaConfig.DEFAULT_RELAYS];

@@ -1,6 +1,7 @@
 import { LayoutPresets } from '@/core/env/LayoutPresets';
 import { PUBLIC_RELAYS } from '@/core/env/MetaConfig';
 import { spacing } from '@/core/env/Spacing';
+import { useUserPreferences } from '@/lib/hooks/useUserPreferences';
 import { useThemeColors } from '@/lib/theme/ThemeContext';
 import { BareEvent } from '@/lib/types/search';
 import { extractTitle } from '@/lib/utils/contentParser';
@@ -13,6 +14,7 @@ import { Filter } from '@welshman/util';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ContentWarning } from './ContentWarning';
 import { ProfileMini } from './ProfileMini';
 
 interface ContentMiniProps {
@@ -27,6 +29,7 @@ export const ContentMini: React.FC<ContentMiniProps> = ({
   raw,
 }) => {
   const colors = useThemeColors();
+  const { hideSensitiveContent } = useUserPreferences();
 
   const [searchResult, setSearchResult] = useState<BareEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -121,27 +124,32 @@ export const ContentMini: React.FC<ContentMiniProps> = ({
 
   // Compact inline mode only
   return (
-    <TouchableOpacity
-      style={[styles.inlineContainer, { backgroundColor: colors.surface }]}
-      onPress={handleCardPress}
-      activeOpacity={0.7}
+    <ContentWarning
+      tags={searchResult.event.tags || []}
+      hideSensitiveContent={hideSensitiveContent}
     >
-      <View style={styles.inlineContent}>
-        <Text style={[styles.inlineTitle, { color: colors.text }]} numberOfLines={1}>
-          {title || 'Content'}
-        </Text>
-        <View style={styles.authorRow}>
-          {searchResult.authorPubkey && (
-            <ProfileMini
-              pubkey={searchResult.authorPubkey}
-              raw={searchResult.authorPubkey}
-              relays={relays}
-              inline={true}
-            />
-          )}
+      <TouchableOpacity
+        style={[styles.inlineContainer, { backgroundColor: colors.surface }]}
+        onPress={handleCardPress}
+        activeOpacity={0.7}
+      >
+        <View style={styles.inlineContent}>
+          <Text style={[styles.inlineTitle, { color: colors.text }]} numberOfLines={1}>
+            {title || 'Content'}
+          </Text>
+          <View style={styles.authorRow}>
+            {searchResult.authorPubkey && (
+              <ProfileMini
+                pubkey={searchResult.authorPubkey}
+                raw={searchResult.authorPubkey}
+                relays={relays}
+                inline={true}
+              />
+            )}
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </ContentWarning>
   );
 };
 

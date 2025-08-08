@@ -1,8 +1,6 @@
-import { pubkey, publishThunk, repository, tagEventForReaction } from '@welshman/app';
+import { pubkey, repository } from '@welshman/app';
 import { groupBy } from '@welshman/lib';
-import { Router } from '@welshman/router';
-import type { TrustedEvent } from '@welshman/util';
-import { DELETE, makeEvent, REACTION } from '@welshman/util';
+import { REACTION } from '@welshman/util';
 import emojiList from 'emoji.json';
 import { getRelayUrls, loadFromRelays } from './relayLoadingUtils';
 
@@ -35,7 +33,6 @@ export const getEmojiReactions = async (eventId: string, shouldLoadFromRelays = 
     // First, try to get reactions from local repository
     let allReactions = repository.query([reactionFilter]);
 
-    // Always load from relays if enabled, regardless of local cache
     if (shouldLoadFromRelays) {
       console.log(`[EMOJI-REACTION] Loading reactions from relays for ${eventId}...`);
 
@@ -59,7 +56,6 @@ export const getEmojiReactions = async (eventId: string, shouldLoadFromRelays = 
       const emoji = reaction.content;
       return !isRepostReaction(emoji) && isValidEmojiText(emoji);
     });
-
     // Group reactions by emoji using groupBy function
     const reactionsByEmoji = groupBy(
       (reaction) => reaction.content, // Key function: group by emoji content
@@ -87,81 +83,11 @@ export const getEmojiReactions = async (eventId: string, shouldLoadFromRelays = 
   }
 };
 
-/**
- * Add an emoji reaction to an event
- * @param event - The event to react to
- * @param emoji - The emoji to add
- */
-export const addEmojiReaction = async (event: TrustedEvent, emoji: string): Promise<void> => {
-  console.log('[EMOJI-REACTION] Adding emoji reaction:', emoji, 'for event:', event.id);
-
-  const tags = tagEventForReaction(event);
-  const reactionEvent = makeEvent(REACTION, {
-    content: emoji,
-    tags
-  });
-
-  const publishUrls = Router.get().PublishEvent(event).getUrls();
-  await publishThunk({
-    event: reactionEvent,
-    relays: publishUrls
-  });
-
-  console.log('[EMOJI-REACTION] Emoji reaction published successfully');
-};
-
-export const removeEmojiReaction = async (event: TrustedEvent, emoji: string): Promise<void> => {
-  console.log('[EMOJI-REACTION] Removing emoji reaction:', emoji, 'for event:', event.id);
-
-  const currentUserPubkey = pubkey.get();
-  if (!currentUserPubkey) {
-    throw new Error('User not logged in');
-  }
-
-  // Find existing reaction by this user
-  const reactionFilter = {
-    kinds: [REACTION],
-    '#e': [event.id],
-    authors: [currentUserPubkey],
-  };
-
-  const existingReactions = repository.query([reactionFilter]);
-  const userReaction = existingReactions.find(r => r.content === emoji);
-
-  if (userReaction) {
-    // Create a DELETE event to remove the reaction
-    const deleteEvent = makeEvent(DELETE, {
-      tags: [
-        ['e', userReaction.id], // Reference the reaction event to delete
-        ['a', `${REACTION}:${currentUserPubkey}:${event.id}`] // Alternative: reference by kind:pubkey:event
-      ]
-    });
-
-    await publishThunk({
-      event: deleteEvent,
-      relays: Router.get().PublishEvent(event).getUrls()
-    });
-
-    console.log('[EMOJI-REACTION] Emoji reaction removed successfully via DELETE event');
-  } else {
-    console.log('[EMOJI-REACTION] No existing reaction found to remove');
-  }
-};
-
-/**
- * Check if a reaction content is a repost reaction
- */
 export const isRepostReaction = (content: string): boolean => {
   const repostReactions = ['repost', '🔁', 'retweet', 'share', '📤'];
   return repostReactions.includes(content.toLowerCase());
 };
 
-/**
- * Check if a reaction content is an emoji reaction (not repost)
- */
-export const isEmojiReaction = (content: string): boolean => {
-  return !isRepostReaction(content);
-};
 /**
  * Convert emoji text representation to actual emoji character
  * @param emojiText - The emoji text

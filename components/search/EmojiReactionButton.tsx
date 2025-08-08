@@ -1,29 +1,44 @@
 import { spacing } from '@/core/env/Spacing';
+import { useStore } from '@/lib/stores/useWelshmanStore2';
 import { useThemeColors } from '@/lib/theme/ThemeContext';
 import { Text } from '@/lib/theme/Themed';
 import { common, text, withBorderRadius } from '@/lib/utils/styleUtils';
+import { pubkey, repository } from '@welshman/app';
+import { deriveEvents } from '@welshman/store';
+import { REACTION } from '@welshman/util';
 import React, { useState } from 'react';
 import { Alert, StyleSheet, TouchableOpacity } from 'react-native';
 
 interface EmojiReactionButtonProps {
   emoji: string;
-  reaction: {
-    count: number;
-    userReacted: boolean;
-    users: string[];
-  };
+  eventId: string;
   onEmojiPress: (emoji: string) => Promise<void>;
   isLoading?: boolean;
 }
 
 export const EmojiReactionButton: React.FC<EmojiReactionButtonProps> = ({
   emoji,
-  reaction,
+  eventId,
   onEmojiPress,
   isLoading = false
 }) => {
   const colors = useThemeColors();
   const [isLocalLoading, setIsLocalLoading] = useState(false);
+  const [currentPubkey] = useStore(pubkey);
+
+  // Get reactions for this specific emoji and event from repository
+  const reactions = deriveEvents(repository, {
+    filters: [{kinds: [REACTION], "#e": [eventId]}]
+  });
+
+  // Use the store reactively
+  const [reactionsData] = useStore(reactions);
+
+  // Filter reactions for this specific emoji
+  const emojiReactions = (reactionsData || []).filter((r: any) => r.content === emoji);
+  const reactionCount = emojiReactions.length;
+  const userReacted = emojiReactions.some((r: any) => r.pubkey === currentPubkey);
+
 
   const handlePress = async () => {
     if (isLoading || isLocalLoading) return;
@@ -39,7 +54,6 @@ export const EmojiReactionButton: React.FC<EmojiReactionButtonProps> = ({
     }
   };
 
-  const isUserReacted = reaction.userReacted;
   const isDisabled = isLoading || isLocalLoading;
 
   return (
@@ -47,8 +61,8 @@ export const EmojiReactionButton: React.FC<EmojiReactionButtonProps> = ({
       style={[
         styles.unifiedButton,
         {
-          backgroundColor: isUserReacted ? colors.primary + '20' : 'transparent',
-          borderColor: isUserReacted ? colors.primary : colors.border,
+          backgroundColor: userReacted ? colors.primary + '20' : 'transparent',
+          borderColor: userReacted ? colors.primary : colors.border,
         }
       ]}
       onPress={handlePress}
@@ -56,9 +70,9 @@ export const EmojiReactionButton: React.FC<EmojiReactionButtonProps> = ({
       activeOpacity={0.7}
     >
       <Text style={styles.emojiText} numberOfLines={1}>{emoji}</Text>
-      {reaction.count > 1 && (
+      {reactionCount > 1 && (
         <Text style={[styles.countText, { color: colors.placeholder }]}>
-          {reaction.count}
+          {reactionCount}
         </Text>
       )}
     </TouchableOpacity>

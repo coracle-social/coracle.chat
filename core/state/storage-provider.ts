@@ -4,33 +4,28 @@ import { Platform } from 'react-native';
 const webStorageProvider = {
   get: async (key: string) => {
     if (typeof key !== 'string') {
-      console.warn('[STORAGE] Web provider received non-string key:', key, 'Type:', typeof key);
-    }
-
-    // Check if localStorage is available and working
-    if (typeof window === 'undefined' || typeof localStorage === 'undefined' || !localStorage) {
-      return undefined
+      throw new Error('Key must be a string');
     }
 
     try {
       localStorage.setItem('test', 'test')
       localStorage.removeItem('test')
     } catch (testError) {
-      console.warn('localStorage not available:', testError)
-      return undefined
+     // throw new Error('localStorage not available');
+     console.log('localStorage not available'); //won't launch on web if throwing error
+     return undefined;
     }
 
     try {
       const value = localStorage.getItem(key)
       return value ? JSON.parse(value) : undefined
     } catch (error) {
-      console.warn('Failed to get from localStorage:', error)
-      return undefined
+      throw new Error('Failed to get from localStorage');
     }
   },
   set: async (key: string, value: unknown) => {
     if (typeof key !== 'string') {
-      console.warn('[STORAGE] Web provider received non-string key:', key, 'Type:', typeof key);
+      throw new Error('Key must be a string');
     }
 
     // Check if localStorage is available and working
@@ -42,8 +37,9 @@ const webStorageProvider = {
       localStorage.setItem('test', 'test')
       localStorage.removeItem('test')
     } catch (testError) {
-      console.warn('localStorage not available:', testError)
-      return
+      //throw new Error('localStorage not available');
+      console.log('localStorage not available'); //won't launch on web if throwing error
+      return;
     }
 
     if (value === undefined || value === null) {
@@ -68,7 +64,7 @@ const mobileStorageProvider = {
   },
   set: async (key: string, value: unknown) => {
     if (typeof key !== 'string') {
-      console.warn('[STORAGE] Mobile provider received non-string key:', key, 'Type:', typeof key);
+      throw new Error('Key must be a string');
     }
 
     // Ensure key is a string

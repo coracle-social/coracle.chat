@@ -1,8 +1,10 @@
+import { pubkey } from '@welshman/app';
 import { platformStorageProvider } from '../../core/state/storage-provider';
 
 type UserPreferencesState = {
   postLength: 'mini' | 'full';
   urlPreviews: 'enabled' | 'disabled';
+  hideSensitiveContent: 'enabled' | 'disabled';
 };
 
 type UserPreferencesStore = {
@@ -10,10 +12,13 @@ type UserPreferencesStore = {
   set: (state: Partial<UserPreferencesState>) => void;
   setPostLength: (mode: 'mini' | 'full') => void;
   setUrlPreviews: (mode: 'enabled' | 'disabled') => void;
+  setHideSensitiveContent: (mode: 'enabled' | 'disabled') => void;
   togglePostLength: () => void;
   toggleUrlPreviews: () => void;
+  toggleHideSensitiveContent: () => void;
   getPostLength: () => 'mini' | 'full';
   getUrlPreviews: () => 'enabled' | 'disabled';
+  getHideSensitiveContent: () => 'enabled' | 'disabled';
   loadSavedPreferences: () => Promise<void>;
   savePreferences: (preferences: Partial<UserPreferencesState>) => Promise<void>;
 };
@@ -22,13 +27,25 @@ class UserPreferencesStoreImpl implements UserPreferencesStore {
   private state: UserPreferencesState = {
     postLength: 'mini', // Default to mini posts
     urlPreviews: 'enabled', // Default to enabled
+    hideSensitiveContent: 'disabled', // Default to showing sensitive content
   };
 
   private subscribers: Set<(state: UserPreferencesState) => void> = new Set();
+  private pubkeyUnsubscribe: (() => void) | undefined;
 
   constructor() {
     // Load saved preferences on initialization
     this.loadSavedPreferences();
+
+    // Subscribe to pubkey changes to reload preferences when profile switches
+    this.pubkeyUnsubscribe = pubkey.subscribe(() => {
+      this.loadSavedPreferences();
+    });
+  }
+
+  private getProfileKey(key: string): string {
+    const currentPubkey = pubkey.get();
+    return currentPubkey ? `${currentPubkey}_${key}` : key;
   }
 
   subscribe(callback: (state: UserPreferencesState) => void) {
@@ -70,6 +87,16 @@ class UserPreferencesStoreImpl implements UserPreferencesStore {
     await this.setUrlPreviews(newMode);
   };
 
+  setHideSensitiveContent = async (mode: 'enabled' | 'disabled') => {
+    this.set({ hideSensitiveContent: mode });
+    await this.savePreferences({ hideSensitiveContent: mode });
+  };
+
+  toggleHideSensitiveContent = async () => {
+    const newMode = this.state.hideSensitiveContent === 'enabled' ? 'disabled' : 'enabled';
+    await this.setHideSensitiveContent(newMode);
+  };
+
   getPostLength = () => {
     return this.state.postLength;
   };
@@ -78,9 +105,14 @@ class UserPreferencesStoreImpl implements UserPreferencesStore {
     return this.state.urlPreviews;
   };
 
+  getHideSensitiveContent = () => {
+    return this.state.hideSensitiveContent;
+  };
+
   loadSavedPreferences = async () => {
-    const savedPostLength = await platformStorageProvider.get('postLengthMode');
-    const savedUrlPreviews = await platformStorageProvider.get('urlPreviewMode');
+    const savedPostLength = await platformStorageProvider.get(this.getProfileKey('postLengthMode'));
+    const savedUrlPreviews = await platformStorageProvider.get(this.getProfileKey('urlPreviewMode'));
+    const savedHideSensitiveContent = await platformStorageProvider.get(this.getProfileKey('hideSensitiveContentMode'));
 
     const updates: Partial<UserPreferencesState> = {};
 
@@ -92,6 +124,10 @@ class UserPreferencesStoreImpl implements UserPreferencesStore {
       updates.urlPreviews = savedUrlPreviews as 'enabled' | 'disabled';
     }
 
+    if (savedHideSensitiveContent && (savedHideSensitiveContent === 'enabled' || savedHideSensitiveContent === 'disabled')) {
+      updates.hideSensitiveContent = savedHideSensitiveContent as 'enabled' | 'disabled';
+    }
+
     if (Object.keys(updates).length > 0) {
       this.set(updates);
     }
@@ -101,11 +137,15 @@ class UserPreferencesStoreImpl implements UserPreferencesStore {
     const promises: Promise<void>[] = [];
 
     if (preferences.postLength !== undefined) {
-      promises.push(platformStorageProvider.set('postLengthMode', preferences.postLength));
+      promises.push(platformStorageProvider.set(this.getProfileKey('postLengthMode'), preferences.postLength));
     }
 
     if (preferences.urlPreviews !== undefined) {
-      promises.push(platformStorageProvider.set('urlPreviewMode', preferences.urlPreviews));
+      promises.push(platformStorageProvider.set(this.getProfileKey('urlPreviewMode'), preferences.urlPreviews));
+    }
+
+    if (preferences.hideSensitiveContent !== undefined) {
+      promises.push(platformStorageProvider.set(this.getProfileKey('hideSensitiveContentMode'), preferences.hideSensitiveContent));
     }
 
     await Promise.all(promises);

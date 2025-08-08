@@ -159,3 +159,15 @@ export const isVideoUrl = (url: string): boolean => {
   const lowerUrl = url.toLowerCase();
   return videoExtensions.some(ext => lowerUrl.includes(ext));
 };
+
+/**
+ * Check if an event has a content warning tag
+ * @param tags - Array of event tags
+ * @returns The content warning message if found, null otherwise
+ */
+export const getContentWarning = (tags: string[][]): string | null => {
+  if (!tags || !Array.isArray(tags)) return null;
+
+  const contentWarningTag = tags.find(tag => tag[0] === 'content-warning');
+  return contentWarningTag?.[1] || null;
+};
