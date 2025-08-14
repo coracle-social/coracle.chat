@@ -1,7 +1,8 @@
+import { SEARCH_LIMITS } from '@/core/env/searchQualityConfig';
 import { useStore } from '@/lib/stores/useWelshmanStore2';
 import { BareEvent, WotSearchOptions } from '@/lib/types/search';
 import {
-  wotEnhancedProfileSearch,
+    wotEnhancedProfileSearch,
 } from '@/lib/utils/wotSearch';
 import { profileSearch, pubkey } from '@welshman/app';
 import { useCallback, useEffect, useState } from 'react';
@@ -15,7 +16,7 @@ export const useWotSearch = () => {
     trustLevels: ['high', 'medium'],
     networkDistance: 3, // Support up to 3 hops
     hasProfile: true,
-    limit: 50
+    limit: SEARCH_LIMITS.wotSearchLimit
   });
 
   const [userPubkey] = useStore(pubkey);

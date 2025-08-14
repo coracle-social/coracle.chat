@@ -11,7 +11,7 @@ export default function SettingsLayout() {
   // 📌 WEB: Keep sidebar layout
   if (Platform.OS === 'web') {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.surface }]}>
         <View style={styles.layout}>
           <SettingsSidebar />
           <View style={styles.mainContentWrapper}>
@@ -71,7 +71,6 @@ export default function SettingsLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: spacing(4),
     paddingHorizontal: spacing(1),
   },
   layout: {

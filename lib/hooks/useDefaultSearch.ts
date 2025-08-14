@@ -1,3 +1,4 @@
+import { SEARCH_LIMITS } from '@/core/env/searchQualityConfig';
 import { useStore } from '@/lib/stores/useWelshmanStore2';
 import { BareEvent } from '@/lib/types/search';
 import { searchContentWithReactions } from '@/lib/utils/contentSearch';
@@ -96,7 +97,7 @@ export const useDefaultSearch = (): UseDefaultSearchReturn => {
           term,
           isLoadMore,
           offset: profileOffset,
-          limit: 50,
+          limit: SEARCH_LIMITS.defaultProfileLimit,
           profileSearchStore,
         });
 
@@ -105,7 +106,7 @@ export const useDefaultSearch = (): UseDefaultSearchReturn => {
         if (isLoadMore) {
           setProfileOffset(profileSearchResult.newOffset);
         } else {
-          setProfileOffset(50);
+          setProfileOffset(SEARCH_LIMITS.profileLoadMoreLimit);
         }
       }
 
@@ -114,16 +115,17 @@ export const useDefaultSearch = (): UseDefaultSearchReturn => {
           term,
           isLoadMore,
           offset: contentOffset,
-          limit: 50,
+          limit: SEARCH_LIMITS.defaultContentLimit,
         });
 
         newContentEvents.push(...contentSearchResult.results);
 
-        if (isLoadMore) {
-          setContentOffset(contentSearchResult.newOffset);
-        } else {
-          setContentOffset(50);
-        }
+        // Disable load more for content search (testing with single result)
+        // if (isLoadMore) {
+        //   setContentOffset(contentSearchResult.newOffset);
+        // } else {
+        //   setContentOffset(SEARCH_LIMITS.contentLoadMoreLimit);
+        // }
       }
 
       if (isLoadMore) {

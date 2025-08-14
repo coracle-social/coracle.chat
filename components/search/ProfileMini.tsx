@@ -1,10 +1,11 @@
 import { useShimmerConfig } from '@/core/env/ShimmerConfig';
 import { spacing } from '@/core/env/Spacing';
-import { useProfileLoading } from '@/lib/hooks/useProfileLoading';
+import { useStore } from '@/lib/stores/useWelshmanStore2';
 import { useThemeColors } from '@/lib/theme/ThemeContext';
 import { Text } from '@/lib/theme/Themed';
 import { BareEvent } from '@/lib/types/search';
 import { Avatar } from '@rneui/themed';
+import { deriveProfile } from '@welshman/app';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -18,7 +19,6 @@ interface ProfileMiniProps {
   relays?: string[];
   raw: string;
   onProfilePress?: (profile: BareEvent) => void;
-  profileData?: BareEvent;
   inline?: boolean;
 }
 
@@ -27,17 +27,24 @@ export const ProfileMini: React.FC<ProfileMiniProps> = ({
   relays = [],
   raw,
   onProfilePress,
-  profileData: initialProfileData,
   inline = false,
 }) => {
   const colors = useThemeColors();
   const shimmerConfig = useShimmerConfig();
 
-  const { isLoading, profile: profileData, basicInfo} = useProfileLoading(
-    pubkey,
-    relays,
-    initialProfileData
-  );
+  // Direct store access - much simpler
+  const profileStore = deriveProfile(pubkey, relays);
+  const [profile] = useStore(profileStore);
+
+  // Convert store profile to BareEvent format
+  const profileData = profile ? {
+    id: `profile-${pubkey}`,
+    type: 'profile',
+    event: profile,
+    authorPubkey: pubkey,
+  } as BareEvent : undefined;
+
+  const isLoading = !profileData;
 
   const [showPopup, setShowPopup] = useState(false);
   const [isFollowing, setIsFollowing] = useState(profileData?.isFollowing || false);
@@ -56,8 +63,6 @@ export const ProfileMini: React.FC<ProfileMiniProps> = ({
   const displayName =
     profileData?.event.name ||
     profileData?.event.display_name ||
-    basicInfo?.name ||
-    basicInfo?.displayName ||
     'Loading...';
 
   const renderAvatar = () => {

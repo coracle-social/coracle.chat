@@ -1,3 +1,4 @@
+import { useThemeColors } from '@/lib/theme/ThemeContext';
 import React from 'react';
 import { StyleProp, ViewStyle } from 'react-native';
 
@@ -13,12 +14,17 @@ interface SolarIconProps {
 export default function SolarIcon({
   name,
   size = 24,
-  color = '#202020',
+  color,
   fill = 'none',
   strokeWidth = 1.5,
   style,
   ...props
 }: SolarIconProps) {
+  const colors = useThemeColors();
+
+  // Use provided color or theme-aware default (black for light, white for dark)
+  const iconColor = color || colors.text;
+
   const Icon = getIconByName(name);
 
   if (!Icon) {
@@ -26,14 +32,20 @@ export default function SolarIcon({
     return null;
   }
 
+  // Apply color through style to use currentColor in SVGs
+  const iconStyle = [
+    { color: iconColor }, // This sets the currentColor for the SVG
+    style
+  ];
+
   return (
     <Icon
       width={size}
       height={size}
-      stroke={color}
+      stroke={iconColor}
       fill={fill}
       strokeWidth={strokeWidth}
-      style={style}
+      style={iconStyle}
       {...props}
     />
   );
@@ -58,12 +70,13 @@ function getIconByName(name: string): React.ComponentType<Record<string, unknown
       return require('../assets/icons/solar/Settings.svg').default;
     case 'Magnifier':
       return require('../assets/icons/solar/Magnifer.svg').default;
+    case 'User Rounded':
+      return require('../assets/icons/solar/User Rounded.svg').default;
     default:
       console.warn(`Icon "${name}" not found.`);
       return null;
   }
 }
 
-
-//NOTE CURRENT SVGs don't support fill and stroke, this will change in the future
-//can also use bolded versions as a simple fix
+// NOTE: SVGs now use currentColor for stroke, so color prop will work properly
+// The color prop is applied through the style to set currentColor

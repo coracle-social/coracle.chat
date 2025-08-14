@@ -36,6 +36,9 @@ app/functionsDoc.txt
 .env
 graph.svg
 
+# Local development overrides
+.npmrc
+
 
 
 # typescript

@@ -111,7 +111,10 @@ export default function ProfilePicture({
         <Avatar
           rounded
           size={avatarSize}
-          source={{ uri: avatarUrl }}
+          source={avatarUrl ? { uri: avatarUrl } : undefined}
+          icon={{ name: 'user', type: 'feather' }}
+          iconStyle={{ color: colors.placeholder }}
+          containerStyle={!avatarUrl ? { backgroundColor: colors.surfaceVariant } : undefined}
         />
         <TouchableOpacity
           style={[styles.expandButton, { backgroundColor: colors.primary }]}

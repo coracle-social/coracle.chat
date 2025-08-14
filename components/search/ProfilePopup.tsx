@@ -47,6 +47,19 @@ export const ProfilePopup: React.FC<ProfilePopupProps> = ({
   const [isLoadingBanner, setIsLoadingBanner] = useState(false);
   const [recentActivityTimestamp, setRecentActivityTimestamp] = useState<number | null>(null);
 
+  // Debug logging for profile data
+  React.useEffect(() => {
+    if (isVisible && result) {
+      console.log('[PROFILE-POPUP] Popup opened for result:', result);
+      console.log('[PROFILE-POPUP] result.event:', result.event);
+      console.log('[PROFILE-POPUP] result.event.picture:', result.event?.picture);
+      console.log('[PROFILE-POPUP] result.event.name:', result.event?.name);
+      console.log('[PROFILE-POPUP] result.event.display_name:', result.event?.display_name);
+      console.log('[PROFILE-POPUP] result.event.about:', result.event?.about);
+      console.log('[PROFILE-POPUP] result.authorPubkey:', result.authorPubkey);
+    }
+  }, [isVisible, result]);
+
   // Load banner image when popup is opened
   useEffect(() => {
     if (isVisible && !bannerImage && !isLoadingBanner) {

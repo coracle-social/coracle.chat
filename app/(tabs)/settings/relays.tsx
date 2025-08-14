@@ -138,13 +138,8 @@ export default function RelaysSettings() {
           relays={inboxRelayData}
           label={`${inboxRelayData.length} inbox relays`}
           onRemove={async (url) => {
-            try {
-              await removeInboxRelay(url);
-              setInboxRelays(prev => prev.filter(relayUrl => relayUrl !== url));
-            } catch (error) {
-              const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-              alert(`Error removing relay from inbox: ${errorMessage}`);
-            }
+            removeInboxRelay(url);
+            setInboxRelays(prev => prev.filter(relayUrl => relayUrl !== url));
           }}
           onRefresh={refreshUserRelays}
         />
@@ -168,14 +163,8 @@ export default function RelaysSettings() {
                 setOutboxRelays(prev => [...prev, url]);
             }}
             onAddInbox={async (url) => {
-              try {
-                await addInboxRelay(url);
+                addInboxRelay(url);
                 setInboxRelays(prev => [...prev, url]);
-                setShowRelaySearch(false);
-              } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                alert(`Error adding relay to inbox: ${errorMessage}`);
-              }
             }}
           />
         </View>

@@ -55,10 +55,10 @@ export const LoadingStates: React.FC<LoadingStatesProps> = ({
           style={styles.spinner}
         />
       )}
-      <Text style={[styles.icon, { color: colors.placeholder }]}>
+      <Text style={[styles.icon, { color: colors.text }]}>
         {getIcon()}
       </Text>
-      <Text style={[styles.message, { color: colors.placeholder }]}>
+      <Text style={[styles.message, { color: colors.text }]}>
         {message || getDefaultMessage()}
       </Text>
     </View>

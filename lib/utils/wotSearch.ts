@@ -1,7 +1,8 @@
+import { SEARCH_LIMITS } from '@/core/env/searchQualityConfig';
 import { BareEvent, WotSearchOptions } from '@/lib/types/search';
-import { getFollowerCount, getFollowingCount, isFollowing } from '@/lib/utils/followUtils';
-import { loadProfileFollowData } from '@/lib/utils/profileLoadingUtility';
 import { getFollowers, getFollows, getNetwork, loadProfile, maxWot, pubkey, repository, wotGraph } from '@welshman/app';
+import { getFollowerCount, getFollowingCount, isFollowing } from './followUtils';
+import { getProfileData } from './profileLoadingUtility';
 
 // Calculate network distance for a target pubkey
 const calculateNetworkDistance = (targetPubkey: string): number => {
@@ -62,7 +63,7 @@ export const wotEnhancedProfileSearch = async (
     });
 
   // Load profiles and create events
-  await Promise.allSettled(filteredPubkeys.map((pubkey: string) => loadProfileFollowData(pubkey)));
+  await Promise.allSettled(filteredPubkeys.map((pubkey: string) => getProfileData(pubkey)));
 
   const results = await Promise.all(
     filteredPubkeys.map(async (pubkey: string) => {
@@ -100,8 +101,7 @@ export const wotEnhancedProfileSearch = async (
     })
   );
 
+  // Apply limit and return results
   return results
-    .filter(Boolean)
-    .sort((a, b) => (b.wotScore || 0) - (a.wotScore || 0))
-    .slice(0, wotOptions.limit || 50) as BareEvent[];
+    .slice(0, wotOptions.limit || SEARCH_LIMITS.wotSearchLimit) as BareEvent[];
 };

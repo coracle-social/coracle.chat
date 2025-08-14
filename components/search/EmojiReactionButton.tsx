@@ -61,8 +61,8 @@ export const EmojiReactionButton: React.FC<EmojiReactionButtonProps> = ({
       style={[
         styles.unifiedButton,
         {
-          backgroundColor: userReacted ? colors.primary + '20' : 'transparent',
-          borderColor: userReacted ? colors.primary : colors.border,
+          backgroundColor: userReacted ? '#FF450020' : 'transparent',
+          borderColor: userReacted ? '#FF4500' : colors.border,
         }
       ]}
       onPress={handlePress}

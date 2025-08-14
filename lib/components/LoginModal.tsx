@@ -72,15 +72,15 @@ export default function LoginModal({ onLoginSuccess, context = 'login' }: LoginM
             </Text>
 
             {context === 'login' && (
-              <Pressable onPress={() => openUrl('https://nostr.com')} style={styles.linkContainer}>
-                <Text style={[styles.linkText, { color: colors.primary }]}>
-                  {AppConfig.APP_NAME} is built on the{' '}
-                  <Text style={styles.underline}>nostr protocol</Text>
-                </Text>
-              </Pressable>
+            <Pressable onPress={() => openUrl('https://nostr.com')} style={styles.linkContainer}>
+              <Text style={[styles.linkText, { color: colors.primary }]}>
+                {AppConfig.APP_NAME} is built on the{' '}
+                <Text style={styles.underline}>nostr protocol</Text>
+              </Text>
+            </Pressable>
             )}
 
-                        {successMessage ? (
+            {successMessage ? (
               <View style={[styles.successBox, { backgroundColor: colors.primary }]}>
                 <Text style={[styles.successText, { color: colors.surface }]}>
                   {successMessage}
@@ -102,12 +102,12 @@ export default function LoginModal({ onLoginSuccess, context = 'login' }: LoginM
                   size="large"
                 />
                 {hasMultipleAccounts && (
-                  <OptionButton
+                    <OptionButton
                     title="Logout of All Accounts"
                     onPress={handleLogoutAll}
                     icon="log-out"
                     variant="secondary"
-                    size="large"
+                      size="large"
                     style={{ marginTop: spacing(2) }}
                   />
                 )}

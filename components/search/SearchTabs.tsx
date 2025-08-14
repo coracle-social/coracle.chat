@@ -31,7 +31,7 @@ export const SearchTabs: React.FC<SearchTabsProps> = ({
     { id: 'content', label: 'Content', icon: '📝' },
     { id: 'relevance', label: 'Relevance', icon: '⭐' },
     { id: 'date', label: 'Date', icon: '📅' },
-    { id: 'popularity', label: 'Popularity', icon: '🔥' },
+    { id: 'popularity', label: 'Popularity1', icon: '🔥' },
     { id: 'trust', label: 'Trust', icon: '🛡️' },
   ];
 
@@ -72,7 +72,7 @@ export const SearchTabs: React.FC<SearchTabsProps> = ({
       >
         <Text style={[
           styles.filterBubbleText,
-          { color: isSelected ? colors.surface : colors.text }
+          { color: colors.text }
         ]}>
           {option.icon} {option.label}
         </Text>

@@ -1,5 +1,6 @@
 import {
-  DEFAULT_QUALITY_THRESHOLDS
+  DEFAULT_QUALITY_THRESHOLDS,
+  SEARCH_LIMITS
 } from '@/core/env/searchQualityConfig';
 import { BareEvent, ProfileSearchOptions, ProfileSearchResult } from '@/lib/types/search';
 import { getFollowerCount, getFollowingCount, isFollowing } from '@/lib/utils/followUtils';
@@ -97,7 +98,7 @@ export const isProfileLink = (input: string): boolean => {
  * Search profiles with weighted field scoring and quality filtering
  */
 export const searchProfilesWithWeighting = async (options: ProfileSearchOptions): Promise<ProfileSearchResult> => {
-  const { term, isLoadMore = false, offset = 0, limit = 50, profileSearchStore } = options;
+  const { term, isLoadMore = false, offset = 0, limit = SEARCH_LIMITS.defaultProfileLimit, profileSearchStore } = options;
 
   const profileSearchResults = profileSearchStore?.searchOptions(term) || [];
 

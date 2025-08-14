@@ -152,8 +152,8 @@ export default function SettingsSidebar({
   };
 
     return (
-      <View>
-        <View style={styles.drawerItemWrapper}>
+      <View style={{ backgroundColor: colors.surface }}>
+        <View style={[styles.drawerItemWrapper, { backgroundColor: colors.surface }]}>
           <Drawer.Item
             icon="cog"
             label="Settings"
@@ -166,7 +166,7 @@ export default function SettingsSidebar({
             theme={paperTheme}
           />
         </View>
-        <View style={styles.drawerItemWrapper}>
+        <View style={[styles.drawerItemWrapper, { backgroundColor: colors.surface }]}>
           <Drawer.Item
             icon="account"
             label="Profile"
@@ -179,7 +179,7 @@ export default function SettingsSidebar({
             theme={paperTheme}
           />
         </View>
-        <View style={styles.drawerItemWrapper}>
+        <View style={[styles.drawerItemWrapper, { backgroundColor: colors.surface }]}>
           <Drawer.Item
             icon="wifi"
             label="Relays"
@@ -192,7 +192,7 @@ export default function SettingsSidebar({
             theme={paperTheme}
           />
         </View>
-        <View style={styles.drawerItemWrapper}>
+        <View style={[styles.drawerItemWrapper, { backgroundColor: colors.surface }]}>
           <Drawer.Item
             icon="chart-box"
             label="Usage"

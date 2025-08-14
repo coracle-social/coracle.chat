@@ -32,30 +32,39 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
 };
 
 
-// LOCAL WELSHMAN CONFIGURATION
+// LOCAL WELSHMAN CONFIGURATION (only for local development)
 const path = require('path');
+const fs = require('fs');
 
-// Add resolver configuration for local Welshman packages
-config.resolver.nodeModulesPaths = [
-  path.resolve(__dirname, 'node_modules'),
-  path.resolve(__dirname, '../welshman/welshman/packages'),
-];
+// Check if local Welshman packages exist
+const localWelshmanPath = path.resolve(__dirname, '../welshman/welshman/packages');
+const hasLocalWelshman = fs.existsSync(localWelshmanPath);
 
-// Add alias for Welshman packages to ensure they resolve correctly
-config.resolver.alias = {
-  '@welshman/app': path.resolve(__dirname, '../welshman/welshman/packages/app/dist/app/src/index.js'),
-  '@welshman/net': path.resolve(__dirname, '../welshman/welshman/packages/net/dist/net/src/index.js'),
-  '@welshman/signer': path.resolve(__dirname, '../welshman/welshman/packages/signer/dist/signer/src/index.js'),
-  '@welshman/util': path.resolve(__dirname, '../welshman/welshman/packages/util/dist/util/src/index.js'),
-  '@welshman/store': path.resolve(__dirname, '../welshman/welshman/packages/store/dist/store/src/index.js'),
-  '@welshman/lib': path.resolve(__dirname, '../welshman/welshman/packages/lib/dist/index.js'),
-  '@welshman/relay': path.resolve(__dirname, '../welshman/welshman/packages/relay/dist/relay/src/index.js'),
-  '@welshman/router': path.resolve(__dirname, '../welshman/welshman/packages/router/dist/index.js'),
-};
+if (hasLocalWelshman) {
+  console.log('🔗 Using local Welshman packages for development');
 
-// Add watchFolders to ensure Metro watches the Welshman packages
-config.watchFolders = [
-  path.resolve(__dirname, '../welshman/welshman/packages'),
-];
+  // Add resolver configuration for local Welshman packages
+  config.resolver.nodeModulesPaths = [
+    path.resolve(__dirname, 'node_modules'),
+    localWelshmanPath,
+  ];
+
+  // Add alias for Welshman packages to ensure they resolve correctly
+  config.resolver.alias = {
+    '@welshman/app': path.resolve(localWelshmanPath, 'app/dist/app/src/index.js'),
+    '@welshman/net': path.resolve(localWelshmanPath, 'net/dist/net/src/index.js'),
+    '@welshman/signer': path.resolve(localWelshmanPath, 'signer/dist/signer/src/index.js'),
+    '@welshman/util': path.resolve(localWelshmanPath, 'util/dist/util/src/index.js'),
+    '@welshman/store': path.resolve(localWelshmanPath, 'store/dist/store/src/index.js'),
+    '@welshman/lib': path.resolve(localWelshmanPath, 'lib/dist/index.js'),
+    '@welshman/relay': path.resolve(localWelshmanPath, 'relay/dist/relay/src/index.js'),
+    '@welshman/router': path.resolve(localWelshmanPath, 'router/dist/index.js'),
+  };
+
+  // Add watchFolders to ensure Metro watches the Welshman packages
+  config.watchFolders = [localWelshmanPath];
+} else {
+  console.log('📦 Using npm Welshman packages');
+}
 
 module.exports = config;

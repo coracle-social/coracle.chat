@@ -2,6 +2,7 @@ import { ComponentStyles } from '@/core/env/ComponentStyles';
 import { LayoutPresets } from '@/core/env/LayoutPresets';
 import { spacing } from '@/core/env/Spacing';
 import { CloseButton } from '@/lib/components/CloseButton';
+import HStack from '@/lib/components/HStack';
 import VStack from '@/lib/components/VStack';
 import { useImageSizing } from '@/lib/hooks/useImageSizing';
 import { useUserPreferences } from '@/lib/hooks/useUserPreferences';
@@ -17,7 +18,7 @@ import {
 } from '@/lib/utils/imageHandling';
 import { withBorderRadius, withShadow } from '@/lib/utils/styleUtils';
 import React, { useState } from 'react';
-import { Dimensions, FlatList, Image, Modal, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Dimensions, FlatList, Image, Modal, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 // Separate ImageModal component to prevent re-render issues
 const ImageModal = React.memo(({
@@ -35,27 +36,19 @@ const ImageModal = React.memo(({
       transparent={true}
       animationType="fade"
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalHeader}>
-          <CloseButton
-            onPress={onClose}
-            position="absolute"
-            size="medium"
-          />
-        </View>
-
-        <ScrollView
-          style={styles.modalContent}
-          contentContainerStyle={styles.modalContentContainer}
-          showsVerticalScrollIndicator={false}
-        >
+      {/* <View style={styles.modalOverlay}> */}
+        <HStack style={styles.modalOverlay}>
           <Image
             source={{ uri: selectedImage }}
             style={styles.fullSizeImage}
             resizeMode="contain"
           />
-        </ScrollView>
-      </View>
+          <CloseButton
+            onPress={onClose}
+            size="medium"
+          />
+        </HStack>
+      {/* </View> */}
     </Modal>
   );
 });
@@ -462,13 +455,14 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   modalOverlay: {
+    ...LayoutPresets.row,
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.9)',
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    padding: spacing(2),
   },
   modalHeader: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
     zIndex: 1,
   },
 

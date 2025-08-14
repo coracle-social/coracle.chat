@@ -1,10 +1,11 @@
+import { SEARCH_LIMITS } from '@/core/env/searchQualityConfig';
 import { BareEvent, ContentSearchOptions, ContentSearchResult } from '@/lib/types/search';
 import { repository } from '@welshman/app';
 import { COMMENT, Filter, getReplyFilters, LONG_FORM, NOTE } from '@welshman/util';
 import { loadContent } from './relayLoadingUtils';
 
 export const searchContentWithReactions = async (options: ContentSearchOptions): Promise<ContentSearchResult> => {
-  const { term, isLoadMore = false, offset = 0, limit = 50 } = options;
+  const { term, isLoadMore = false, offset = 0, limit = SEARCH_LIMITS.defaultContentLimit } = options;
 
   // Use Welshman's content search with pagination
   const contentFilter: Filter = {

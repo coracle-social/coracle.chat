@@ -1,68 +1,70 @@
-const tintColorLight = '#f16742';
-const tintColorDark = '#f16742';
+const tintColorLight = '#7161FF';
+const tintColorDark = '#7161FF';
 
 // Theme palette definitions - using palette2 as the main theme
 const defaultPalette = {
   light: {
     text: '#0e1d47',
     background: '#f5f5f5', // Light gray background
-    tint: '#f16742',
+    tint: '#7161FF',
     tabIconDefault: '#f6b50c',
-    tabIconSelected: '#f16742',
+    tabIconSelected: '#7161FF',
     // RNEUI compatible colors
-    primary: '#f16742',
-    secondary: '#5b9ec3',
+    primary: '#7161FF',
+    secondary: '#f16742',
     success: '#2f7b7b',
     warning: '#f6b50c',
-    error: '#f16742',
-    info: '#5b9ec3',
+    error: '#7161FF',
+    info: '#f16742',
     // Additional UI colors
     surface: '#ffffff',
     surfaceVariant: '#f8f9fa',
     border: '#05174d',
     divider: '#2f7b7b',
-    disabled: '#f6b50c',
-    placeholder: '#f6b50c',
+    disabled: '#f16742',
+    placeholder: '#f16742',
     // Interactive button colors
     interactiveIcon: '#0e1d47',
     interactiveBorder: '#05174d',
-    // Tab icons
+    // Tab iconsxf
     tabIcons: {
       dashboard: 'Home Smile',
       explore: 'compass',
       spaces: 'Settings Minimalistic',
       messages: 'Letter',
       search: 'Magnifier',
+      profile: 'User Rounded',
       settings: 'Settings',
     },
     // Additional UI colors for components
-    inactiveIcon: '#f6b50c',
+    inactiveIcon: '#f16742',
     sidebarBorder: '#05174d',
-    activeTabBackground: '#f16742',
-    inactiveTabText: '#f6b50c',
+    activeTabBackground: '#7161FF',
+    inactiveTabText: '#f16742',
     activeTabText: '#ffffff', //ffffce for that yellow
     buttonBorder: '#05174d',
   },
   dark: {
     text: '#ffffce',
-    background: '#2a2a2a', // Dark gray background
-    tint: '#f16742',
+    background: '#272523', // Dark gray background
+    tint: '#7161FF',
     tabIconDefault: '#f6b50c',
-    tabIconSelected: '#f16742',
+    tabIconSelected: '#7161FF',
     // RNEUI compatible colors
-    primary: '#f16742',
-    secondary: '#5b9ec3',
+    primary: '#7161FF',
+    secondary: '#f16742',
     success: '#2f7b7b',
     warning: '#f6b50c',
-    error: '#f16742',
-    info: '#5b9ec3',
+    error: '#7161FF',
+    info: '#f16742',
     // Additional UI colors
-    surface: '#3a3a3a',
+    surface: '#2D2C2A',
     surfaceVariant: '#404040',
+    surfaceDark: '#1E1A13',
     border: '#05174d',
     divider: '#2f7b7b',
-    disabled: '#f6b50c',
-    placeholder: '#f6b50c',
+    disabled: '#f16742',
+    placeholder: '#f16742',
     // Interactive button colors
     interactiveIcon: '#ffffce',
     interactiveBorder: '#05174d',
@@ -73,13 +75,15 @@ const defaultPalette = {
       spaces: 'Settings Minimalistic',
       messages: 'Letter',
       search: 'Magnifier',
+      profile: 'User Rounded',
       settings: 'Settings',
     },
     // Additional UI colors for components
-    inactiveIcon: '#f6b50c',
+    inactiveIcon: '#f16742',
     sidebarBorder: '#05174d',
-    activeTabBackground: '#f16742',
-    inactiveTabText: '#f6b50c',
+    activeTabBackground: '#7161FF',
+    secondarySidebarBackground: '#1E1A13',
+    inactiveTabText: '#f16742',
     activeTabText: '#ffffce',
     buttonBorder: '#05174d',
   },

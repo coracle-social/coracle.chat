@@ -1,3 +1,4 @@
+import SolarIcon from '@/components/SolarIcons';
 import { spacing } from '@/core/env/Spacing';
 import { useThemeColors } from '@/lib/theme/ThemeContext';
 import { Text } from '@/lib/theme/Themed';
@@ -15,6 +16,8 @@ interface SearchInputProps {
   autoFocus?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   autoCorrect?: boolean;
+  showMenu?: boolean;
+  onMenuPress?: () => void;
 }
 
 export const SearchInput: React.FC<SearchInputProps> = ({
@@ -27,15 +30,22 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   autoFocus = false,
   autoCapitalize = 'none',
   autoCorrect = false,
+  showMenu = true,
+  onMenuPress,
 }) => {
   const colors = useThemeColors();
 
   return (
     <View style={[styles.inputContainer, { backgroundColor: colors.surfaceVariant }]}>
+      <SolarIcon
+        name="Magnifier"
+        size={20}
+        style={styles.searchIcon}
+      />
       <TextInput
         style={[styles.input, { color: colors.text }]}
         placeholder={placeholder}
-        placeholderTextColor={colors.placeholder}
+        placeholderTextColor={colors.text}
         value={value}
         onChangeText={onChangeText}
         onFocus={onFocus}
@@ -50,12 +60,22 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           onPress={onClear}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Text style={{ color: colors.placeholder, fontSize: 18 }}>✕</Text>
+          <Text style={{ color: colors.text, fontSize: 18 }}>✕</Text>
+        </TouchableOpacity>
+      )}
+      {showMenu && (
+        <TouchableOpacity
+          style={styles.menuButton}
+          onPress={onMenuPress}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Text style={{ color: colors.text, fontSize: 16 }}>⋮</Text>
         </TouchableOpacity>
       )}
     </View>
   );
 };
+
 const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
@@ -63,6 +83,9 @@ const styles = StyleSheet.create({
     borderRadius: 20, // Increased from 8 for more rounded appearance
     paddingHorizontal: spacing(2),
     paddingVertical: spacing(1),
+  },
+  searchIcon: {
+    marginRight: spacing(1),
   },
   input: {
     flex: 1,
@@ -74,6 +97,10 @@ const styles = StyleSheet.create({
     marginLeft: spacing(2),
   },
   clearButton: {
+    marginLeft: spacing(1),
+    padding: spacing(0.5),
+  },
+  menuButton: {
     marginLeft: spacing(1),
     padding: spacing(0.5),
   },

@@ -11,7 +11,7 @@ import { pubkey } from '@welshman/app';
 import { Link, router } from 'expo-router';
 import { ScrollView } from 'react-native';
 
-export default function ProfileSettings() {
+export default function ProfileTab() {
   const [currentPubkey] = useStore(pubkey);
   const colors = useThemeColors();
   const { toggleTheme } = useTheme();
@@ -22,7 +22,10 @@ export default function ProfileSettings() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ maxWidth: 800, alignSelf: 'center', width: '100%' }}
+      >
         <View style={settingsStyles.profileSection}>
           <Text style={settingsStyles.sectionTitle}>Profile</Text>
           {currentPubkey ? (

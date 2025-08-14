@@ -6,6 +6,7 @@ export enum TabRoutes {
   SPACES = 'spaces',
   MESSAGES = 'messages',
   SEARCH = 'search',
+  PROFILE = 'profile',
   SETTINGS = 'settings',
 }
 

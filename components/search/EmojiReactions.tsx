@@ -71,7 +71,7 @@ export const EmojiReactions: React.FC<EmojiReactionsProps> = ({
     loadReactions();
   }, [event.id]);
 
-  const handleEmojiPress = async (emoji: string) => {
+  const handleEmojiPress = useCallback(async (emoji: string) => {
     console.log('[EMOJI-REACTIONS] handleEmojiPress called with emoji:', emoji);
     // Check if user is logged in
     if (!currentPubkey) {
@@ -100,15 +100,15 @@ export const EmojiReactions: React.FC<EmojiReactionsProps> = ({
       });
     }
     setIsLoading(false);
-  };
+  }, [currentPubkey, event.id, reactions, showPopup]);
 
-  const handleAddReaction = async (emoji: string) => {
+  const handleAddReaction = useCallback(async (emoji: string) => {
     try {
       await handleEmojiPress(emoji);
     } catch (error) {
       console.error('[EMOJI-REACTIONS] Error in handleAddReaction:', error);
     }
-  };
+  }, [handleEmojiPress]);
 
   // Override the handleEmojiSelect to use our local callback
   const handleEmojiSelectOverride = useCallback((emoji: string) => {
