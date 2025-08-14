@@ -1,5 +1,17 @@
 const { getDefaultConfig } = require('expo/metro-config');
 
+// Add localStorage polyfill for Node.js builds
+if (typeof global !== 'undefined' && !global.localStorage) {
+  global.localStorage = {
+    getItem: () => null,
+    setItem: () => {},
+    removeItem: () => {},
+    clear: () => {},
+    key: () => null,
+    length: 0
+  };
+}
+
 const config = getDefaultConfig(__dirname);
 
 // Extract the default values first

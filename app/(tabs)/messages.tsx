@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { StyleSheet } from 'react-native';
 
-import ViewingRooms from '@/components/ViewingRooms';
-import { WebContainer } from '@/lib/components/WebContainer';
 import { useThemeColors } from '@/lib/theme/ThemeContext';
-import { Text, View } from '@/lib/theme/Themed';
+import { Text } from '@/lib/theme/Themed';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function MessagesScreen() {
@@ -23,7 +21,8 @@ export default function MessagesScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-     <WebContainer>
+     <Text>Messages</Text>
+     {/* <WebContainer>
 
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Messages</Text>
@@ -36,7 +35,7 @@ export default function MessagesScreen() {
       </View>
 
       <ViewingRooms key={reloadKey} onRoomSelect={handleRoomSelect} selectedRoomId={selectedRoomId} />
-      </WebContainer>
+      </WebContainer> */}
     </SafeAreaView>
   );
 }
