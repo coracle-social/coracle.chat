@@ -1,15 +1,19 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useColorScheme as useSystemColorScheme } from 'react-native';
+import { colorPalettes } from '@/core/env/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Colors from '@/core/env/Colors';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useColorScheme as useSystemColorScheme } from 'react-native';
 
 type ThemeMode = 'light' | 'dark' | 'system';
+type PaletteType = 'default';
 
 interface ThemeContextType {
   themeMode: ThemeMode;
   isDark: boolean;
+  currentPalette: PaletteType;
   toggleTheme: () => void;
   setThemeMode: (mode: ThemeMode) => void;
+  setPalette: (palette: PaletteType) => void;
+  getColors: () => any;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -17,21 +21,24 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemColorScheme = useSystemColorScheme();
   const [themeMode, setThemeMode] = useState<ThemeMode>('light'); // Start with light to prevent flicker
+  const [currentPalette, setCurrentPalette] = useState<PaletteType>('default');
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load saved theme preference
   useEffect(() => {
     const loadThemePreference = async () => {
-      try {
-        const savedTheme = await AsyncStorage.getItem('themeMode');
-        if (savedTheme && ['light', 'dark', 'system'].includes(savedTheme)) {
-          setThemeMode(savedTheme as ThemeMode);
-        }
-        setIsLoaded(true);
-      } catch (error) {
-        console.error('Failed to load theme preference:', error);
-        setIsLoaded(true);
+      const savedTheme = await AsyncStorage.getItem('themeMode');
+      const savedPalette = await AsyncStorage.getItem('currentPalette');
+
+      if (savedTheme && ['light', 'dark', 'system'].includes(savedTheme)) {
+        setThemeMode(savedTheme as ThemeMode);
       }
+
+      if (savedPalette && ['default'].includes(savedPalette)) {
+        setCurrentPalette(savedPalette as PaletteType);
+      }
+
+      setIsLoaded(true);
     };
     loadThemePreference();
   }, []);
@@ -41,11 +48,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     : themeMode === 'dark');
 
   const saveThemePreference = async (mode: ThemeMode) => {
-    try {
-      await AsyncStorage.setItem('themeMode', mode);
-    } catch (error) {
-      console.error('Failed to save theme preference:', error);
-    }
+    await AsyncStorage.setItem('themeMode', mode);
+  };
+
+  const savePalettePreference = async (palette: PaletteType) => {
+    await AsyncStorage.setItem('currentPalette', palette);
   };
 
   const setThemeModeAndSave = (mode: ThemeMode) => {
@@ -53,16 +60,29 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     saveThemePreference(mode);
   };
 
+  const setPaletteAndSave = (palette: PaletteType) => {
+    setCurrentPalette(palette);
+    savePalettePreference(palette);
+  };
+
   const toggleTheme = () => {
     const newMode = isDark ? 'light' : 'dark';
     setThemeModeAndSave(newMode);
   };
 
+  const getColors = () => {
+    const colorScheme = isDark ? 'dark' : 'light';
+    return colorPalettes[currentPalette][colorScheme];
+  };
+
   const value: ThemeContextType = {
     themeMode,
     isDark,
+    currentPalette,
     toggleTheme,
     setThemeMode: setThemeModeAndSave,
+    setPalette: setPaletteAndSave,
+    getColors,
   };
 
   return (
@@ -81,7 +101,6 @@ export function useTheme() {
 }
 
 export function useThemeColors() {
-  const { isDark } = useTheme();
-  const colorScheme = isDark ? 'dark' : 'light';
-  return Colors[colorScheme];
+  const { getColors } = useTheme();
+  return getColors();
 }

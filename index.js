@@ -1,3 +1,6 @@
+// AbortSignal polyfill for React Native
+import './lib/utils/abort-signal-polyfill';
+
 import 'expo-crypto';
 import 'expo-router/entry';
 

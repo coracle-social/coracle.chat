@@ -11,24 +11,34 @@ export interface ParsedContent {
 export const extractTitle = (text: string): string => {
   if (!text) return '';
 
-  const firstLine = text.split('\n')[0].trim();
+  const lines = text.split('\n').filter(line => line.trim().length > 0);
 
-  // Parse the first line with Welshman parser to remove Nostr entities
+  // Try each line until we find one with actual text content
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+
+    // Parse the line with Welshman parser to remove Nostr entities
   const parsedElements = parse({
-    content: firstLine,
+      content: trimmedLine,
     tags: [] // No tags needed for title parsing
   });
 
-  // Remove Nostr entities (profiles, events, etc.) from the text
-  let cleanText = firstLine;
-  parsedElements.forEach(element => {
-    if (element.type === ParsedType.Profile || element.type === ParsedType.Event) {
-      cleanText = cleanText.replace(element.raw, '');
-    }
-  });
+      // Remove Nostr entities (profiles, events, etc.) from the text
+    let cleanText = trimmedLine;
+    parsedElements.forEach(element => {
+      if (element.type === ParsedType.Profile || element.type === ParsedType.Event) {
+        cleanText = cleanText.replace(element.raw, '');
+      }
+    });
 
-  cleanText = cleanText.replace(/\s+/g, ' ').trim();
+    // Also remove regular URLs
+    const urlRegex = /https?:\/\/[^\s]+/g;
+    cleanText = cleanText.replace(urlRegex, '');
 
+    cleanText = cleanText.replace(/\s+/g, ' ').trim();
+
+    // If we found actual text content, use it
+    if (cleanText.length > 0) {
   if (cleanText.length <= 100) {
     return cleanText;
   }
@@ -37,29 +47,75 @@ export const extractTitle = (text: string): string => {
   const firstSentence = sentences[0].trim();
 
   return firstSentence.length > 0 ? firstSentence : cleanText.substring(0, 100);
+    }
+  }
+
+  // If no text content found, return a default
+  return 'Content';
 };
 
-export interface WebsitePreview {
-  url: string;
-  title?: string;
-  description?: string;
-  image?: string;
-  domain: string;
-}
+
 
 export const extractUrls = (text: string): string[] => {
-  const urlRegex = /https?:\/\/[^\s]+/g;
-  return text.match(urlRegex) || [];
+  const urls: string[] = [];
+
+  // Extract plain URLs
+  const plainUrlRegex = /https?:\/\/[^\s]+/g;
+  const plainUrls = text.match(plainUrlRegex) || [];
+  urls.push(...plainUrls);
+
+  // Extract markdown links [text](url)
+  const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  let match;
+  while ((match = markdownLinkRegex.exec(text)) !== null) {
+    const url = match[2];
+    if (url.startsWith('http')) {
+      urls.push(url);
+    }
+  }
+
+  // Extract markdown images ![alt](url)
+  const markdownImageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+  while ((match = markdownImageRegex.exec(text)) !== null) {
+    const url = match[2];
+    if (url.startsWith('http')) {
+      urls.push(url);
+    }
+  }
+
+  // Remove duplicates while preserving order
+  return [...new Set(urls)];
 };
 
 export const extractMediaUrls = (urls: string[]): string[] => {
   const mediaExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.mov', '.avi', '.webm'];
+  const imageDomains = [
+    'media.', 'cdn.', 'images.', 'img.', 'static.', 'assets.',
+    'wp-content/uploads', 'uploads', 'media-library'
+  ];
+
   return urls.filter(url => {
     const lowerUrl = url.toLowerCase();
-    return mediaExtensions.some(ext => lowerUrl.includes(ext)) ||
-           lowerUrl.includes('media.') ||
-           lowerUrl.includes('cdn.') ||
-           lowerUrl.includes('images.');
+
+    // Check for media file extensions
+    if (mediaExtensions.some(ext => lowerUrl.includes(ext))) {
+      return true;
+    }
+
+    // Check for image hosting domains
+    if (imageDomains.some(domain => lowerUrl.includes(domain))) {
+      return true;
+    }
+
+    // Check for common image patterns
+    if (lowerUrl.includes('/wp-content/uploads/') ||
+        lowerUrl.includes('/uploads/') ||
+        lowerUrl.includes('/images/') ||
+        lowerUrl.includes('/media/')) {
+      return true;
+    }
+
+    return false;
   });
 };
 
@@ -79,17 +135,11 @@ export const parseContent = (content: string): ParsedContent => {
   const websiteUrls = extractWebsiteUrls(urls);
   const hashtags = extractHashtags(content);
 
-  // Remove URLs and hashtags from text for cleaner display
-  let cleanText = content;
-  urls.forEach(url => {
-    cleanText = cleanText.replace(url, '');
-  });
-  hashtags.forEach(hashtag => {
-    cleanText = cleanText.replace(hashtag, '');
-  });
+  // Keep original content with URLs and hashtags intact
+  const text = content;
 
   return {
-    text: cleanText.trim(),
+    text,
     urls,
     mediaUrls,
     websiteUrls,
@@ -98,32 +148,26 @@ export const parseContent = (content: string): ParsedContent => {
 };
 
 export const getDomain = (url: string): string => {
-  try {
-    const urlObj = new URL(url);
-    return urlObj.hostname.replace('www.', '');
-  } catch {
-    return url;
-  }
+  const urlObj = new URL(url);
+  return urlObj.hostname.replace('www.', '');
 };
 
-export const createWebsitePreview = (url: string): WebsitePreview => {
-  return {
-    url,
-    domain: getDomain(url),
-  };
-};
 
-export const isImageUrl = (url: string): boolean => {
-  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
-  const lowerUrl = url.toLowerCase();
-  return imageExtensions.some(ext => lowerUrl.includes(ext)) ||
-         lowerUrl.includes('media.') ||
-         lowerUrl.includes('cdn.') ||
-         lowerUrl.includes('images.');
-};
 
 export const isVideoUrl = (url: string): boolean => {
   const videoExtensions = ['.mp4', '.mov', '.avi', '.webm', '.mkv'];
   const lowerUrl = url.toLowerCase();
   return videoExtensions.some(ext => lowerUrl.includes(ext));
+};
+
+/**
+ * Check if an event has a content warning tag
+ * @param tags - Array of event tags
+ * @returns The content warning message if found, null otherwise
+ */
+export const getContentWarning = (tags: string[][]): string | null => {
+  if (!tags || !Array.isArray(tags)) return null;
+
+  const contentWarningTag = tags.find(tag => tag[0] === 'content-warning');
+  return contentWarningTag?.[1] || null;
 };

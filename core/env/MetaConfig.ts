@@ -30,6 +30,19 @@ export const MetaConfig = {
     "wss://relay.nostr.band/",
     "wss://relay.damus.io/",
     "wss://nos.lol/"
+  ],
+
+  // Messaging-optimized relays for room operations
+  MESSAGING_RELAYS: [
+    "wss://purplepag.es",       // ✅ Coracle's main room metadata relay
+    "wss://relayable.org",      // ✅ Frequently used for bots/rooms
+    "wss://nostr.mutinywallet.com",
+      'wss://purplepag.es',
+      'wss://relayable.org',
+      'wss://nostr.fmt.wiz.biz',
+      'wss://coracle.social',
+      'wss://relay.nostr.band',        // keep this
+      'wss://nos.lol',                 // keep this
   ]
 
 } as const;
@@ -41,6 +54,7 @@ export const getDnsPrefetchLinks = () => {
 };
 
 // Public relays for profile loading and fallback
+
 export const PUBLIC_RELAYS = [
   'wss://relay.damus.io',
   'wss://nos.lol',

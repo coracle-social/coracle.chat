@@ -1,230 +1,125 @@
-import { SlideUpPopup } from '@/components/generalUI/SlideUpPopup';
-import Colors from '@/core/env/Colors';
 import { spacing } from '@/core/env/Spacing';
-import { useSlideUpPopup } from '@/lib/hooks/useSlideUpPopup';
-import { useTheme } from '@/lib/theme/ThemeContext';
+import { useLazyCommentCounts } from '@/lib/hooks/useLazyCommentCounts';
+import { useThemeColors } from '@/lib/theme/ThemeContext';
 import { Text } from '@/lib/theme/Themed';
-import { SearchResult } from '@/lib/types/search';
-import { getUserReaction, likePost, unlikePost } from '@/lib/utils/reactionUtils';
-import { Button, Icon } from '@rneui/themed';
-import { pubkey } from '@welshman/app';
-import { int } from '@welshman/lib/src/Tools';
-import React, { useEffect, useState } from 'react';
-import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { BareEvent } from '@/lib/types/search';
+import { formatNumber } from '@/lib/utils/formatNums';
+import { Icon } from '@rneui/themed';
+import React, { useState } from 'react';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { EmojiReactions } from './EmojiReactions';
+import { InlineCommentView } from './InlineCommentView';
 
 interface ContentResultActionsProps {
-  result: SearchResult;
-  onShare?: (result: SearchResult) => void;
-  onBookmark?: (result: SearchResult) => void;
-  showActions?: boolean;
+  result: BareEvent;
+  onComment?: () => void;
+  onLoginRequired?: (message: string, type?: 'info' | 'warning' | 'error' | 'success') => void;
 }
 
 export const ContentResultActions: React.FC<ContentResultActionsProps> = ({
   result,
-  onShare,
-  onBookmark,
-  showActions = true,
+  onLoginRequired,
 }) => {
-  const { isDark } = useTheme();
-  const colorScheme = isDark ? 'dark' : 'light';
-  const colors = Colors[colorScheme];
-  const [isLiked, setIsLiked] = useState(false);
-  const [isLiking, setIsLiking] = useState(false);
-  const [localLikeCount, setLocalLikeCount] = useState(result.metadata.likeCount || 0);
-  const { isVisible, message, type, widthRatio, showPopup, hidePopup } = useSlideUpPopup();
+  const colors = useThemeColors();
 
-  const formatNumber = (num: number) => {
-    return int(num);
-  };
+  const [showComments, setShowComments] = useState(false);
 
-  useEffect(() => {
-    const checkExistingReaction = async () => {
-      try {
-        const userReaction = await getUserReaction(result.event.id);
-        if (userReaction === '+') {
-          setIsLiked(true);
-        }
-      } catch (error) {
-        console.error('[CONTENT-ACTIONS] Error checking existing reaction:', error);
-      }
-    };
+  // Use lazy comment counts for better performance
+  const { getCommentCount } = useLazyCommentCounts({
+    eventIds: [result.event.id],
+    enabled: true,
+    loadFromRelays: true
+  });
 
-    checkExistingReaction();
-  }, [result.event.id]);
+  // Get comment count from repository (always fresh)
+  const commentCount = getCommentCount(result.event.id);
 
-  const handleLike = async () => {
-    if (isLiking) return;
-
-    // Check if user is logged in
-    const currentUserPubkey = pubkey.get();
-    if (!currentUserPubkey) {
-      showPopup('You must login to react', 'warning');
-      return;
-    }
-
-    try {
-      setIsLiking(true);
-
-      if (isLiked) {
-        // Unlike
-        await unlikePost(result.event);
-        setIsLiked(false);
-        setLocalLikeCount(prev => Math.max(0, prev - 1));
-        console.log('[CONTENT-ACTIONS] Post unliked successfully');
-      } else {
-        // Like
-        await likePost(result.event);
-        setIsLiked(true);
-        setLocalLikeCount(prev => prev + 1);
-        console.log('[CONTENT-ACTIONS] Post liked successfully');
-      }
-    } catch (error) {
-      console.error('[CONTENT-ACTIONS] Error handling like:', error);
-      Alert.alert('Error', 'Failed to update reaction. Please try again.');
-    } finally {
-      setIsLiking(false);
-    }
+  const handleComment = () => {
+    setShowComments(!showComments);
+    // Don't call onComment callback to avoid triggering popups
+    // onComment?.();
   };
 
   const renderEngagementStats = () => (
     <View style={styles.engagementContainer}>
-      <TouchableOpacity
-        style={styles.engagementButton}
-        onPress={handleLike}
-        disabled={isLiking}
-        activeOpacity={0.7}
-      >
-        <Icon
-          name={isLiked ? 'heart' : 'heart-outline'}
-          type="ionicon"
-          size={18}
-          color={isLiked ? colors.error : colors.placeholder}
-        />
-        {localLikeCount > 0 && (
-          <Text style={[styles.engagementText, { color: colors.placeholder }]}>
-            {formatNumber(localLikeCount)}
-          </Text>
-        )}
-      </TouchableOpacity>
-
-      {result.metadata.replyCount !== undefined && (
-        <View style={styles.engagementButton}>
+      <View style={styles.leftSection}>
+        <TouchableOpacity
+          style={styles.engagementButton}
+          onPress={handleComment}
+          activeOpacity={0.7}
+        >
           <Icon
             name="chatbubble-outline"
             type="ionicon"
-            size={18}
-            color={colors.placeholder}
+            size={22}
+            color={showComments ? colors.primary : colors.interactiveIcon}
           />
-          <Text style={[styles.engagementText, { color: colors.placeholder }]}>
-            {formatNumber(result.metadata.replyCount)}
+          <Text style={[styles.engagementText, { color: showComments ? colors.primary : colors.interactiveIcon }]}>
+            {formatNumber(commentCount)}
           </Text>
-        </View>
-      )}
+        </TouchableOpacity>
+      </View>
 
-      {result.metadata.repostCount !== undefined && (
-        <View style={styles.engagementButton}>
-          <Icon
-            name="repeat-outline"
-            type="ionicon"
-            size={18}
-            color={colors.placeholder}
-          />
-          <Text style={[styles.engagementText, { color: colors.placeholder }]}>
-            {formatNumber(result.metadata.repostCount)}
-          </Text>
-        </View>
-      )}
+      {/* Emoji Reactions */}
+      <EmojiReactions
+        event={result.event}
+        maxVisible={4}
+      />
     </View>
   );
-
-  const renderActionButtons = () => (
-    <View style={styles.actionButtonsContainer}>
-      {onShare && (
-        <Button
-          type="clear"
-          icon={
-            <Icon
-              name="share-outline"
-              type="ionicon"
-              size={18}
-              color={colors.placeholder}
-            />
-          }
-          onPress={() => onShare(result)}
-          buttonStyle={styles.actionButton}
-        />
-      )}
-
-      {onBookmark && (
-        <Button
-          type="clear"
-          icon={
-            <Icon
-              name="bookmark-outline"
-              type="ionicon"
-              size={18}
-              color={colors.placeholder}
-            />
-          }
-          onPress={() => onBookmark(result)}
-          buttonStyle={styles.actionButton}
-        />
-      )}
-    </View>
-  );
-
-  if (!showActions) {
-    return null;
-  }
 
   return (
     <>
-      <View style={styles.container}>
-        {renderEngagementStats()}
-        {renderActionButtons()}
-      </View>
+      {/* Dividing line at the top */}
+      <View style={[styles.dividingLine, { backgroundColor: colors.border }]} />
 
-      <SlideUpPopup
-        isVisible={isVisible}
-        message={message}
-        type={type}
-        widthRatio={widthRatio}
-        onHide={hidePopup}
+      {renderEngagementStats()}
+
+      {/* Inline Comment View */}
+      <InlineCommentView
+        eventId={result.event.id}
+        isVisible={showComments}
+        onClose={() => setShowComments(false)}
+        showAllComments={true}
+        onLoginRequired={onLoginRequired}
       />
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  dividingLine: {
+    height: 0.5,
+    width: '90%',
+    alignSelf: 'center',
+    marginTop: spacing(1),
   },
   engagementContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    flexWrap: 'wrap',
+    paddingHorizontal: spacing(1),
+    paddingVertical: spacing(0.25),
+    marginTop: spacing(1), // Increased from spacing(0.25) for better separation
+  },
+  leftSection: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   engagementButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing(2),
-    paddingVertical: spacing(1),
-    borderRadius: 20,
-    marginRight: spacing(2),
+    paddingHorizontal: spacing(1.5),
+    paddingVertical: spacing(0.75),
+    borderRadius: 10,
+    minWidth: 52,
+    justifyContent: 'center',
+    marginRight: spacing(0.75),
   },
   engagementText: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: spacing(1),
-  },
-  actionButtonsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  actionButton: {
-    padding: spacing(2),
-    marginLeft: spacing(1),
-    borderRadius: 20,
+    fontSize: 15,
+    marginLeft: spacing(0.75),
+    fontWeight: '600',
   },
 });

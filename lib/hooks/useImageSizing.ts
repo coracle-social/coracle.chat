@@ -1,5 +1,5 @@
-import { imageSizingStore } from '@/core/state/image-sizing-store';
-import { useStore } from '@/stores/useWelshmanStore2';
+import { imageSizingStore } from '@/lib/stores/image-sizing-store';
+import { useStore } from '@/lib/stores/useWelshmanStore2';
 
 export const useImageSizing = () => {
   const [state] = useStore(imageSizingStore);

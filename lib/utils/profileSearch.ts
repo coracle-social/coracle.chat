@@ -1,34 +1,97 @@
-import { SearchResult } from '@/lib/types/search';
+import {
+  DEFAULT_QUALITY_THRESHOLDS
+} from '@/core/env/searchQualityConfig';
+import { BareEvent, ProfileSearchOptions, ProfileSearchResult } from '@/lib/types/search';
 import { getFollowerCount, getFollowingCount, isFollowing } from '@/lib/utils/followUtils';
 import {
-  checkVerification,
-  getRecentActivityTimestamp,
-  loadActivityDataFromRelays,
+  getProfileData,
   loadProfileFollowData
 } from '@/lib/utils/profileLoadingUtility';
-import {
-  calculateProfileQualityScore,
-  DEFAULT_QUALITY_THRESHOLDS,
-  meetsProfileQualityThresholds
-} from '@/lib/utils/searchQualityConfig';
-import { searchProfiles } from '@welshman/app';
-import { load, request } from '@welshman/net';
-import { Router } from '@welshman/router';
-import { Filter, PROFILE } from '@welshman/util';
-import { Platform } from 'react-native';
+import { loadProfile, repository } from '@welshman/app';
+import { fromNostrURI } from '@welshman/util';
+import { decode } from "nostr-tools/nip19";
+import { loadProfilesBySearchTerm } from './relayLoadingUtils';
 
-export interface ProfileSearchOptions {
-  term: string;
-  isLoadMore?: boolean;
-  offset?: number;
-  limit?: number;
-  profileSearchStore?: any;
-}
 
-export interface ProfileSearchResult {
-  results: SearchResult[];
-  newOffset: number;
-}
+export const searchProfileByLink = async (input: string): Promise<BareEvent | null> => {
+  try {
+    let pubkey: string;
+    let relays: string[] = [];
+
+    const cleanInput = input.trim();
+
+    // Check if it's a Nostr URI
+    if (cleanInput.startsWith('npub') || cleanInput.startsWith('nostr:')) {
+      try {
+        const bech32 = fromNostrURI(cleanInput);
+
+        const { type, data } = decode(bech32);
+
+        if (type === 'npub') {
+          pubkey = data as string;
+        } else {
+          throw new Error('Invalid Nostr URI type');
+        }
+      } catch (error) {
+        console.error('[PROFILE-SEARCH] Error decoding Nostr URI:', error);
+        return null;
+      }
+    } else {
+      // Assume it's a raw hex pubkey
+      if (!/^[0-9a-fA-F]{64}$/.test(cleanInput)) {
+        console.error('[PROFILE-SEARCH] Invalid pubkey format');
+        return null;
+      }
+      pubkey = cleanInput;
+    }
+
+    await loadProfile(pubkey, relays);
+
+    // Get the profile from repository
+    const profileFilter = { kinds: [0], authors: [pubkey] };
+    const localEvents = repository.query([profileFilter]);
+
+    if (localEvents.length === 0) {
+      console.warn('[PROFILE-SEARCH] Profile not found:', pubkey.substring(0, 8) + '...');
+      return null;
+    }
+
+    const event = localEvents[0];
+    const profile = JSON.parse(event.content || '{}');
+
+    const profileDataResult = await getProfileData(pubkey, profile);
+
+    // Convert to BareEvent format
+    return {
+      id: `profile-${event.pubkey}`,
+      type: 'profile',
+      event: {
+        ...event,
+        ...profile, // Merge profile data into event
+      },
+      authorPubkey: event.pubkey,
+      verified: false, //only exists for wot search
+      followerCount: profileDataResult.followerCount,
+      followingCount: profileDataResult.followingCount,
+      isFollowing: profileDataResult.isUserFollowing, // Fixed property name
+    };
+  } catch (error) {
+    console.error('[PROFILE-SEARCH] Error searching profile by link:', error);
+    return null;
+  }
+};
+
+/**
+ * Simple function to check if input looks like a profile link
+ */
+export const isProfileLink = (input: string): boolean => {
+  const cleanInput = input.trim();
+  return (
+    cleanInput.startsWith('npub') ||
+    cleanInput.startsWith('nostr:') ||
+    /^[0-9a-fA-F]{64}$/.test(cleanInput)
+  );
+};
 
 /**
  * Search profiles with weighted field scoring and quality filtering
@@ -36,194 +99,84 @@ export interface ProfileSearchResult {
 export const searchProfilesWithWeighting = async (options: ProfileSearchOptions): Promise<ProfileSearchResult> => {
   const { term, isLoadMore = false, offset = 0, limit = 50, profileSearchStore } = options;
 
-  const newProfileResults: SearchResult[] = [];
-
   const profileSearchResults = profileSearchStore?.searchOptions(term) || [];
 
   // Apply pagination directly to the original dataset
   const startIndex = isLoadMore ? offset : 0;
   const endIndex = startIndex + limit;
-  const paginatedProfiles = profileSearchResults.slice(startIndex, endIndex);
-
-  const combinedProfiles = new Map();
-
-  // Process all profiles from the paginated dataset
-  paginatedProfiles.forEach((profile: any) => {
-    combinedProfiles.set(profile.event.pubkey, {
-      ...profile,
-      _searchScore: 0.5, // Default score for all profiles
-      _searchSource: 'store'
-    });
-  });
-
-  let sortedProfiles = Array.from(combinedProfiles.values());
-
-  console.log('[PROFILE-SEARCH] Loading follow data for', sortedProfiles.length, 'profiles');
+  const profilesToProcess = profileSearchResults.slice(startIndex, endIndex);
 
   // Load follow data for top profiles (limit to avoid too many requests)
-  const profilesToLoadFollowData = sortedProfiles.slice(0, Math.min(20, sortedProfiles.length));
-  const followDataPromises = profilesToLoadFollowData.map(profile =>
+  const profilesToLoadFollowData = profilesToProcess.slice(0, Math.min(20, profilesToProcess.length));
+  const followDataPromises = profilesToLoadFollowData.map((profile: any) =>
     loadProfileFollowData(profile.event.pubkey)
   );
 
-  try {
-    await Promise.allSettled(followDataPromises);
-    console.log('[PROFILE-SEARCH] Follow data loading completed');
-  } catch (error) {
-    console.warn('[PROFILE-SEARCH] Some follow data failed to load:', error);
-  }
+  await Promise.allSettled(followDataPromises);
 
-  //often ddes very little, increase restrictions??
-  sortedProfiles = sortedProfiles.filter((profile: any) => {
-    const verification = checkVerification(profile);
-    const followerCount = getFollowerCount(profile.event.pubkey);
-    const followingCount = getFollowingCount(profile.event.pubkey);
-    const hasProfileInfo = profile.name || profile.display_name || profile.about;
+  // Single pass: filter, score, and create results
+  const results = await Promise.all(
+    profilesToProcess.map(async (profile: any) => {
+      const pubkey = profile.event.pubkey;
 
-    console.log(`[PROFILE-SEARCH] Profile ${profile.event.pubkey.substring(0, 8)}... - Followers: ${followerCount}, Following: ${followingCount}, Verified: ${verification.isVerified}`);
+      // Inline quality threshold check
+      const hasProfileInfo = profile.name || profile.display_name || profile.about;
+      const hasMinimalFollowers = (profile.followerCount || 0) >= DEFAULT_QUALITY_THRESHOLDS.minFollowers;
+      const hasMinimalFollowing = (profile.followingCount || 0) >= DEFAULT_QUALITY_THRESHOLDS.minFollowing;
+      const isVerified = profile.isVerified;
+      const hasValidProfileInfo = !DEFAULT_QUALITY_THRESHOLDS.minProfileInfo || hasProfileInfo;
 
-    return meetsProfileQualityThresholds(
-      followerCount,
-      followingCount,
-      verification.isVerified,
-      !!hasProfileInfo,
-      DEFAULT_QUALITY_THRESHOLDS
-    );
-  });
+      const meetsQualityThresholds = (hasMinimalFollowers && hasMinimalFollowing) || isVerified || hasValidProfileInfo;
 
-  sortedProfiles = sortedProfiles.map((profile: any) => {
-    const verification = checkVerification(profile);
-    const followerCount = getFollowerCount(profile.event.pubkey);
-    const followingCount = getFollowingCount(profile.event.pubkey);
+      if (!meetsQualityThresholds) return null;
 
-    const qualityScore = calculateProfileQualityScore(
-      followerCount,
-      followingCount,
-      verification.verificationScore,
-      DEFAULT_QUALITY_THRESHOLDS
-    );
+      // Inline quality score calculation
+      const followerCount = profile.followerCount || 0;
+      const followingCount = profile.followingCount || 0;
+      const verificationScore = profile.verificationScore || 0;
 
-    // Use quality score as the main score since we removed fuzzy search
-    const combinedScore = qualityScore;
+      const qualityScore = Math.min(
+        (followerCount / 1000) * DEFAULT_QUALITY_THRESHOLDS.followerWeight +
+        (followingCount / 500) * DEFAULT_QUALITY_THRESHOLDS.followingWeight +
+        (verificationScore / 2) * DEFAULT_QUALITY_THRESHOLDS.verificationWeight,
+        1.0
+      );
 
-    return {
-      ...profile,
-      _searchScore: combinedScore,
-      _qualityScore: qualityScore,
-    };
-  });
+      // Get follow data using the same utilities as WOT search
+      const actualFollowerCount = getFollowerCount(pubkey);
+      const actualFollowingCount = getFollowingCount(pubkey);
+      const isUserFollowing = isFollowing(pubkey);
 
-  // Sort by quality score (higher is better)
-  sortedProfiles.sort((a: any, b: any) => (b._qualityScore || 0) - (a._qualityScore || 0));
-
-  // Use the already paginated and processed profiles
-  const profilesToProcess = sortedProfiles;
-
-  for (const profile of profilesToProcess) {
-    const verification = checkVerification(profile);
-    const followerCount = getFollowerCount(profile.event.pubkey);
-    const followingCount = getFollowingCount(profile.event.pubkey);
-    const isUserFollowing = isFollowing(profile.event.pubkey);
-
-    // Get recent activity timestamp (don't await to avoid blocking)
-    const recentActivityPromise = getRecentActivityTimestamp(profile.event.pubkey);
-
-    newProfileResults.push({
-      id: `profile-${profile.event.pubkey}`,
-      type: 'profile',
-      metadata: {
-        timestamp: profile.event.created_at,
-        author: profile.name || profile.display_name,
-        authorPubkey: profile.event.pubkey,
-        verified: verification.isVerified,
-        trustScore: verification.verificationScore,
-        followerCount,
-        followingCount,
+      return {
+        id: `profile-${pubkey}`,
+        type: 'profile',
+        event: profile,
+        authorPubkey: pubkey,
+        verified: profile.isVerified,
+        followerCount: actualFollowerCount,
+        followingCount: actualFollowingCount,
         isFollowing: isUserFollowing,
-        searchScore: profile._searchScore, // Include search score for debugging
-        qualityScore: profile._qualityScore, // Include quality score for debugging
-      },
-      event: profile,
-    });
+        _qualityScore: qualityScore,
+      };
+    })
+  );
 
-    // Update recent activity timestamp when available
-    recentActivityPromise.then(recentActivityTimestamp => {
-      if (recentActivityTimestamp) {
-        const resultIndex = newProfileResults.findIndex(r => r.id === `profile-${profile.event.pubkey}`);
-        if (resultIndex !== -1) {
-          newProfileResults[resultIndex].metadata.recentActivityTimestamp = recentActivityTimestamp;
-        }
-      }
-    }).catch(error => {
-      console.warn('[PROFILE-SEARCH] Failed to get recent activity for profile:', profile.event.pubkey, error);
-    });
-  }
+  // Filter out null results and sort by quality score
+  const validResults = results
+    .filter(Boolean)
+    .sort((a, b) => (b._qualityScore || 0) - (a._qualityScore || 0));
 
   const newOffset = isLoadMore ? offset + limit : limit;
 
-  await loadProfilesFromRelays(term);
-
-  const profilePubkeys = newProfileResults.map(result => result.metadata.authorPubkey).filter((pubkey): pubkey is string => Boolean(pubkey));
-  if (profilePubkeys.length > 0) {
-    loadActivityDataFromRelays(profilePubkeys).catch(error => {
-      console.warn('[PROFILE-SEARCH] Background activity loading failed:', error);
-    });
-  }
+  // Load additional profiles from relays in background
+  await loadProfilesBySearchTerm(term, {
+    onProfileEvent: (event: any, url: string) => {
+      console.log(`[PROFILE-SEARCH] Profile event loaded from relay: ${url}`, event.id);
+    }
+  });
 
   return {
-    results: newProfileResults,
-    newOffset
+    results: validResults,
+    newOffset,
   };
-};
-
-/**
- * Load profiles from relays in the background
- */
-export const loadProfilesFromRelays = async (term: string) => {
-  try {
-    // Trigger search profiles
-    searchProfiles(term);
-
-    // Also try direct repository query for profiles
-    const profileFilter: Filter = {
-      kinds: [PROFILE],
-      search: term,
-      limit: 50,
-    };
-
-    // Load profiles from relays
-    const searchRelays = Router.get().Search().getUrls();
-    const indexRelays = Router.get().Index().getUrls();
-    const relaysToUse = searchRelays.length > 0 ? searchRelays : indexRelays;
-
-    console.log('[PROFILE-SEARCH] Loading profiles from relays:', relaysToUse);
-
-    if (Platform.OS === 'web') {
-      const profileLoad = await load({
-        filters: [profileFilter],
-        relays: relaysToUse,
-      });
-      console.log('[PROFILE-SEARCH] Profile load result:', profileLoad);
-    } else {
-      //eventually remove this, loading still hangs on mobile(see profilemini loads)
-      const _ = await request({
-        filters: [profileFilter],
-        relays: relaysToUse,
-        autoClose: true,
-        threshold: 0.1,
-        onEvent: (event, url) => {
-          // console.log(`Profile event from ${url}:`, event.id)
-        },
-        onEose: (url) => {
-          //console.log(`EOSE from ${url}`)
-        },
-        onDisconnect: (url) => {
-          //console.log(`Disconnected from ${url}`)
-        }
-      });
-      // console.log('[PROFILE-SEARCH] Profile request result:', events);
-    }
-  } catch (error) {
-    console.error('[PROFILE-SEARCH] Error loading profiles from relays:', error);
-  }
 };

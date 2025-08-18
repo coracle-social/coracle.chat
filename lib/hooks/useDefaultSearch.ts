@@ -1,15 +1,15 @@
-import { SearchResult } from '@/lib/types/search';
+import { useStore } from '@/lib/stores/useWelshmanStore2';
+import { BareEvent } from '@/lib/types/search';
 import { searchContentWithReactions } from '@/lib/utils/contentSearch';
-import { searchProfilesWithWeighting } from '@/lib/utils/profileSearch';
-import { useStore } from '@/stores/useWelshmanStore2';
+import { isProfileLink, searchProfileByLink, searchProfilesWithWeighting } from '@/lib/utils/profileSearch';
 import { profileSearch } from '@welshman/app';
 import { useEffect, useState } from 'react';
 
 export interface UseDefaultSearchReturn {
   // State
   searchTerm: string;
-  profileResults: SearchResult[];
-  contentResults: SearchResult[];
+  profileEvents: BareEvent[];
+  contentEvents: BareEvent[];
   isSearching: boolean;
   isLoadingMore: boolean;
   selectedFilters: string[];
@@ -27,8 +27,8 @@ export interface UseDefaultSearchReturn {
 
 export const useDefaultSearch = (): UseDefaultSearchReturn => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [profileResults, setProfileResults] = useState<SearchResult[]>([]);
-  const [contentResults, setContentResults] = useState<SearchResult[]>([]);
+  const [profileEvents, setProfileEvents] = useState<BareEvent[]>([]);
+  const [contentEvents, setContentEvents] = useState<BareEvent[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState<string[]>(['people']);
@@ -38,11 +38,11 @@ export const useDefaultSearch = (): UseDefaultSearchReturn => {
 
   const [profileSearchStore] = useStore(profileSearch);
 
-  // Debounced search
+  // Debounced search with profile link detection
   useEffect(() => {
     if (searchTerm.length < 2) {
-      setProfileResults([]);
-      setContentResults([]);
+      setProfileEvents([]);
+      setContentEvents([]);
       setProfileOffset(0);
       setContentOffset(0);
       setIsSearching(false);
@@ -53,16 +53,44 @@ export const useDefaultSearch = (): UseDefaultSearchReturn => {
     setProfileOffset(0);
     setContentOffset(0);
 
-    const timeoutId = setTimeout(() => performSearch(searchTerm), 300);
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm, selectedFilters]);
+    // Check if the search term looks like a profile link
+    if (isProfileLink(searchTerm)) {
+      console.log('[DEFAULT-SEARCH] Profile link detected:', searchTerm);
+
+      searchProfileByLink(searchTerm).then(profileResult => {
+        if (profileResult) {
+          setProfileEvents([profileResult]); // Now returns BareEvent
+          setContentEvents([]);
+          setIsSearching(false);
+        } else {
+          // If profile not found, perform regular search
+          performSearch(searchTerm);
+        }
+      }).catch(error => {
+        console.error('[DEFAULT-SEARCH] Error searching profile by link:', error);
+        performSearch(searchTerm);
+      });
+    } else {
+      // Perform regular search
+      performSearch(searchTerm);
+    }
+  }, [searchTerm]);
+
+  // Handle filter changes separately to avoid infinite loops
+  useEffect(() => {
+    if (searchTerm.length >= 2) {
+      setIsSearching(true);
+      setProfileOffset(0);
+      setContentOffset(0);
+      performSearch(searchTerm);
+    }
+  }, [selectedFilters]);
 
   const performSearch = async (term: string, isLoadMore = false) => {
     try {
-      const newProfileResults: SearchResult[] = [];
-      const newContentResults: SearchResult[] = [];
+      const newProfileEvents: BareEvent[] = [];
+      const newContentEvents: BareEvent[] = [];
 
-      // Search profiles with weighted field scoring
       if (selectedFilters.includes('people')) {
         const profileSearchResult = await searchProfilesWithWeighting({
           term,
@@ -72,7 +100,7 @@ export const useDefaultSearch = (): UseDefaultSearchReturn => {
           profileSearchStore,
         });
 
-        newProfileResults.push(...profileSearchResult.results);
+        newProfileEvents.push(...profileSearchResult.results);
 
         if (isLoadMore) {
           setProfileOffset(profileSearchResult.newOffset);
@@ -81,7 +109,6 @@ export const useDefaultSearch = (): UseDefaultSearchReturn => {
         }
       }
 
-      // Search content with reactions
       if (selectedFilters.includes('content')) {
         const contentSearchResult = await searchContentWithReactions({
           term,
@@ -90,7 +117,7 @@ export const useDefaultSearch = (): UseDefaultSearchReturn => {
           limit: 50,
         });
 
-        newContentResults.push(...contentSearchResult.results);
+        newContentEvents.push(...contentSearchResult.results);
 
         if (isLoadMore) {
           setContentOffset(contentSearchResult.newOffset);
@@ -100,19 +127,24 @@ export const useDefaultSearch = (): UseDefaultSearchReturn => {
       }
 
       if (isLoadMore) {
-        setProfileResults(prev => {
-          const existingIds = new Set(prev.map(r => r.id));
-          const uniqueNewProfiles = newProfileResults.filter(r => !existingIds.has(r.id));
+        setProfileEvents(prev => {
+          const existingIds = new Set(prev.map(e => e.id));
+          const uniqueNewProfiles = newProfileEvents.filter(e => !existingIds.has(e.id));
           return [...prev, ...uniqueNewProfiles];
         });
-        setContentResults(prev => {
-          const existingIds = new Set(prev.map(r => r.id));
-          const uniqueNewContent = newContentResults.filter(r => !existingIds.has(r.id));
+        setContentEvents(prev => {
+          const existingIds = new Set(prev.map(e => e.id));
+          const uniqueNewContent = newContentEvents.filter(e => !existingIds.has(e.id));
           return [...prev, ...uniqueNewContent];
         });
       } else {
-        setProfileResults(newProfileResults);
-        setContentResults(newContentResults);
+        setProfileEvents(newProfileEvents);
+        setContentEvents(newContentEvents);
+      }
+
+      // Load comment counts in background after search results are displayed
+      if (newContentEvents.length > 0) {
+        // Don't await this - let it run in background
       }
     } catch (error) {
       console.error('🔍 Search error:', error);
@@ -123,24 +155,21 @@ export const useDefaultSearch = (): UseDefaultSearchReturn => {
   };
 
   const loadMoreResults = async () => {
-    if (isLoadingMore || isSearching || searchTerm.length < 2) return;
+    if (isLoadingMore || isSearching) return;
     setIsLoadingMore(true);
     await performSearch(searchTerm, true);
   };
 
   return {
-    // State
     searchTerm,
-    profileResults,
-    contentResults,
+    profileEvents,
+    contentEvents,
     isSearching,
     isLoadingMore,
     selectedFilters,
     selectedSort,
     profileOffset,
     contentOffset,
-
-    // Actions
     setSearchTerm,
     setSelectedFilters,
     setSelectedSort,

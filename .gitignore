@@ -32,6 +32,11 @@ yarn-error.*
 
 # local env files
 .env*.local
+app/functionsDoc.txt
+.env
+graph.svg
+
+
 
 # typescript
 *.tsbuildinfo

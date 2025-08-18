@@ -2,7 +2,7 @@ import { getSession, getSigner, loginWithNip01, loginWithNip55, pubkey, publishT
 import { publish } from '@welshman/net'; // ✅ Import publish directly
 import { Router } from '@welshman/router';
 import { getNip55, Nip55Signer } from '@welshman/signer';
-import { makeEvent } from '@welshman/util';
+import { makeEvent, NOTE } from '@welshman/util';
 import { Alert, Platform } from 'react-native';
 
 
@@ -16,10 +16,7 @@ const getDevPrivateKey = (): string | null => {
 
   if (devPrivateKey) {
     if (/^[0-9a-fA-F]{64}$/.test(devPrivateKey)) {
-      console.log('[DEV] Using hardcoded private key for development');
       return devPrivateKey;
-    } else {
-      console.warn('[DEV] Private key format is invalid (should be 64-character hex)');
     }
   }
   return null;
@@ -31,13 +28,9 @@ const initializeNip55Session = async (): Promise<boolean> => {
   if (nip55Initialized) return nip55Available;
 
   try {
-    console.log('[NIP-55] Checking for available signing apps...');
     const apps = await getNip55();
-    console.log('[NIP-55] Raw apps response:', apps);
 
     if (apps && apps.length > 0) {
-      console.log('[NIP-55] Available apps:', apps.map(app => app.packageName));
-
       const damusApp = apps.find(app =>
         app.packageName.toLowerCase().includes('damus') ||
         app.packageName.toLowerCase().includes('nostr') ||
@@ -45,14 +38,12 @@ const initializeNip55Session = async (): Promise<boolean> => {
       );
 
       const selectedApp = damusApp || apps[0];
-      console.log('[NIP-55] Selected app:', selectedApp.packageName);
 
       const signer = new Nip55Signer(selectedApp.packageName);
       const userPubkey = await signer.getPubkey();
 
       if (userPubkey) {
         await loginWithNip55(userPubkey, selectedApp.packageName);
-        console.log('[NIP-55] Session initialized with app:', selectedApp.packageName, 'Pubkey:', userPubkey);
         nip55Initialized = true;
         nip55Available = true;
         return true;
@@ -62,14 +53,12 @@ const initializeNip55Session = async (): Promise<boolean> => {
     // nip01 fallback while testing, just trying to spoof how nip55 will sign
     const devPrivateKey = getDevPrivateKey();
     if (devPrivateKey) {
-      console.log('[DEV] Using NIP-01 fallback with private key');
       await loginWithNip01(devPrivateKey);
       nip55Initialized = true;
       nip55Available = true;
       return true;
     }
 
-    console.log('[NIP-55] No NIP-55 signing apps available and no dev fallback');
     nip55Initialized = true;
     nip55Available = false;
     return false;
@@ -80,7 +69,6 @@ const initializeNip55Session = async (): Promise<boolean> => {
     const devPrivateKey = getDevPrivateKey();
     if (devPrivateKey) {
       try {
-        console.log('[DEV] Falling back to NIP-01 after NIP-55 error');
         await loginWithNip01(devPrivateKey);
         nip55Initialized = true;
         nip55Available = true;
@@ -96,21 +84,7 @@ const initializeNip55Session = async (): Promise<boolean> => {
   }
 };
 
-// Debug function to check session state
-const debugSession = () => {
-  const currentPubkey = pubkey.get();
-  console.log('[DEBUG] Current pubkey:', currentPubkey);
 
-  if (currentPubkey) {
-    const session = getSession(currentPubkey);
-    console.log('[DEBUG] Session:', session);
-
-    if (session) {
-      const signer = getSigner(session);
-      console.log('[DEBUG] Signer available:', !!signer);
-    }
-  }
-};
 
 /**
  * Updates the user's profile by publishing a kind 0 metadata event
@@ -149,7 +123,6 @@ export const updateProfile = async (updates: Partial<{
     }
 
     console.log('[PROFILE] Current pubkey:', currentPubkey);
-    debugSession(); // ✅ Debug session state
 
     // Get current profile data to merge with updates
     const currentProfile = userProfile.get();
@@ -247,7 +220,6 @@ export const changePicture = async (newPictureUrl: string): Promise<void> => {
     }
 
     console.log('[PROFILE] Current pubkey:', currentPubkey);
-    debugSession(); // ✅ Debug session state
 
     // Get current profile data directly from the store
     const profileData = userProfile.get();
@@ -315,3 +287,50 @@ export const changePicture = async (newPictureUrl: string): Promise<void> => {
 //need to partially eject for damus to work via ios nip 55 signig
 //probably implement nip01 manually signign for now?
 //amethyst with nip 46/55 may work on android
+
+/**
+ * Publish a comment (NOTE event) that references another event
+ * @param content - The comment content
+ * @param eventId - The ID of the event being commented on
+ * @returns Promise that resolves when the comment is published
+ */
+export const publishComment = async (content: string, eventId: string): Promise<void> => {
+  try {
+    console.log('[COMMENT] Publishing comment:', content, 'for event:', eventId);
+
+    // Check if user is logged in
+    const currentUserPubkey = pubkey.get();
+    if (!currentUserPubkey) {
+      throw new Error('No user logged in');
+    }
+
+    // Create a NOTE event that references the original post
+    const commentEvent = makeEvent(NOTE, {
+      content: content.trim(),
+      tags: [
+        ['e', eventId], // Reference to the original post
+        ['p', currentUserPubkey], // Reference to the author
+      ]
+    });
+
+    console.log('[COMMENT] Created comment event:', commentEvent);
+
+    // Get relays to publish to
+    const router = Router.get();
+    const publishRelays = router.FromUser().getUrls();
+    console.log('[COMMENT] Publishing to relays:', publishRelays);
+
+    // Publish the comment
+    await publishThunk({
+      event: commentEvent,
+      relays: publishRelays,
+      delay: 3000,
+    });
+
+    console.log('[COMMENT] Comment published successfully');
+  } catch (error: unknown) {
+    console.error('[COMMENT] Error publishing comment:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to publish comment';
+    throw new Error(errorMessage);
+  }
+};

@@ -1,6 +1,8 @@
+import { useEmojiPickerPopup } from '@/lib/hooks/useEmojiPickerPopup';
 import { usePopup } from '@/lib/hooks/usePopup';
 import React, { useEffect } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
+import { EmojiPickerPopup } from './EmojiPickerPopup';
 import { Layer2Popup } from './Layer2Popup';
 import { Layer3Popup } from './Layer3Popup';
 import { PortalPopup } from './PortalPopup';
@@ -13,6 +15,8 @@ export const PopupManager: React.FC = () => {
     hidePopup,
     popPopup,
   } = usePopup();
+
+  const { handleEmojiSelect } = useEmojiPickerPopup();
 
   useEffect(() => {
     if (!isVisible) return;
@@ -73,6 +77,16 @@ export const PopupManager: React.FC = () => {
         return (
           <View key={`modal-${index}`} style={[styles.modalLayer, { zIndex }]}>
             <Layer3Popup visible={true} onClose={isActive ? popPopup : () => {}} />
+          </View>
+        );
+      case 'emoji-picker':
+        return (
+          <View key={`modal-${index}`} style={[styles.modalLayer, { zIndex }]}>
+            <EmojiPickerPopup
+              visible={true}
+              onClose={isActive ? hidePopup : () => {}}
+              onEmojiSelect={handleEmojiSelect}
+            />
           </View>
         );
       default:
