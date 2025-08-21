@@ -32,6 +32,14 @@ yarn-error.*
 
 # local env files
 .env*.local
+app/functionsDoc.txt
+.env
+graph.svg
+
+# Local development overrides
+.npmrc
+
+
 
 # typescript
 *.tsbuildinfo

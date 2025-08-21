@@ -1,5 +1,5 @@
-import { popupStore } from '@/core/state/popup-store';
-import { useStore } from '@/stores/useWelshmanStore2';
+import { popupStore } from '@/lib/stores/popup-store';
+import { useStore } from '@/lib/stores/useWelshmanStore2';
 
 export const usePopup = () => {
   const [state] = useStore(popupStore);

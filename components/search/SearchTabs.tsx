@@ -1,4 +1,4 @@
-import { useTheme } from '@/lib/theme/ThemeContext';
+import { useThemeColors } from '@/lib/theme/ThemeContext';
 import React, { useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -23,7 +23,7 @@ export const SearchTabs: React.FC<SearchTabsProps> = ({
   onFilterRemove,
   isSortDisabled,
 }) => {
-  const { isDark } = useTheme();
+  const colors = useThemeColors();
   const [showAllOptions, setShowAllOptions] = useState(false);
 
   const filterOptions: FilterOption[] = [
@@ -31,7 +31,7 @@ export const SearchTabs: React.FC<SearchTabsProps> = ({
     { id: 'content', label: 'Content', icon: '📝' },
     { id: 'relevance', label: 'Relevance', icon: '⭐' },
     { id: 'date', label: 'Date', icon: '📅' },
-    { id: 'popularity', label: 'Popularity', icon: '🔥' },
+    { id: 'popularity', label: 'Popularity1', icon: '🔥' },
     { id: 'trust', label: 'Trust', icon: '🛡️' },
   ];
 
@@ -61,8 +61,8 @@ export const SearchTabs: React.FC<SearchTabsProps> = ({
           styles.filterBubble,
           Platform.OS === 'web' && styles.filterBubbleWeb,
           {
-            backgroundColor: isSelected ? (isDark ? '#4dabf7' : '#2f95dc') : (isDark ? '#2a2a2a' : '#f0f0f0'),
-            borderColor: isSelected ? (isDark ? '#4dabf7' : '#2f95dc') : (isDark ? '#404040' : '#d0d0d0'),
+            backgroundColor: isSelected ? colors.primary : colors.surfaceVariant,
+            borderColor: isSelected ? colors.primary : colors.border,
             opacity: isDisabled ? 0.5 : 1,
           }
         ]}
@@ -72,7 +72,7 @@ export const SearchTabs: React.FC<SearchTabsProps> = ({
       >
         <Text style={[
           styles.filterBubbleText,
-          { color: isSelected ? '#ffffff' : (isDark ? '#ffffff' : '#000000') }
+          { color: colors.text }
         ]}>
           {option.icon} {option.label}
         </Text>
@@ -82,7 +82,7 @@ export const SearchTabs: React.FC<SearchTabsProps> = ({
             onPress={() => onFilterRemove(option.id)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={[styles.removeButtonText, { color: '#ffffff' }]}>✕</Text>
+            <Text style={[styles.removeButtonText, { color: colors.surface }]}>✕</Text>
           </TouchableOpacity>
         )}
       </TouchableOpacity>
@@ -116,8 +116,8 @@ export const SearchTabs: React.FC<SearchTabsProps> = ({
               style={[
                 styles.addButton,
                 {
-                  backgroundColor: isDark ? '#2a2a2a' : '#f0f0f0',
-                  borderColor: isDark ? '#404040' : '#d0d0d0',
+                  backgroundColor: colors.surfaceVariant,
+                  borderColor: colors.border,
                 }
               ]}
               onPress={() => setShowAllOptions(true)}
@@ -125,7 +125,7 @@ export const SearchTabs: React.FC<SearchTabsProps> = ({
             >
               <Text style={[
                 styles.addButtonText,
-                { color: isDark ? '#ffffff' : '#000000' }
+                { color: colors.text }
               ]}>
                 + Add
               </Text>

@@ -1,5 +1,5 @@
 import { spacing } from '@/core/env/Spacing';
-import { useTheme } from '@/lib/theme/ThemeContext';
+import { useThemeColors } from '@/lib/theme/ThemeContext';
 import { Text } from '@/lib/theme/Themed';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -15,7 +15,7 @@ export const SearchToggle: React.FC<SearchToggleProps> = ({
   currentEngine,
   onEngineChange,
 }) => {
-  const { isDark } = useTheme();
+  const colors = useThemeColors();
 
   return (
     <View style={styles.container}>
@@ -25,11 +25,11 @@ export const SearchToggle: React.FC<SearchToggleProps> = ({
             styles.toggleButton,
             {
               backgroundColor: currentEngine === 'default'
-                ? (isDark ? '#4dabf7' : '#2f95dc')
-                : (isDark ? '#2a2a2a' : '#f0f0f0'),
+                ? colors.primary
+                : colors.surfaceVariant,
               borderColor: currentEngine === 'default'
-                ? (isDark ? '#4dabf7' : '#2f95dc')
-                : (isDark ? '#404040' : '#d0d0d0'),
+                ? colors.primary
+                : colors.border,
             }
           ]}
           onPress={() => onEngineChange('default')}
@@ -39,8 +39,8 @@ export const SearchToggle: React.FC<SearchToggleProps> = ({
             styles.toggleText,
             {
               color: currentEngine === 'default'
-                ? '#ffffff'
-                : (isDark ? '#ffffff' : '#000000')
+                ? colors.surface
+                : colors.text
             }
           ]}>
             Default Search
@@ -52,11 +52,11 @@ export const SearchToggle: React.FC<SearchToggleProps> = ({
             styles.toggleButton,
             {
               backgroundColor: currentEngine === 'preference'
-                ? (isDark ? '#4dabf7' : '#2f95dc')
-                : (isDark ? '#2a2a2a' : '#f0f0f0'),
+                ? colors.primary
+                : colors.surfaceVariant,
               borderColor: currentEngine === 'preference'
-                ? (isDark ? '#4dabf7' : '#2f95dc')
-                : (isDark ? '#404040' : '#d0d0d0'),
+                ? colors.primary
+                : colors.border,
             }
           ]}
           onPress={() => onEngineChange('preference')}
@@ -66,11 +66,11 @@ export const SearchToggle: React.FC<SearchToggleProps> = ({
             styles.toggleText,
             {
               color: currentEngine === 'preference'
-                ? '#ffffff'
-                : (isDark ? '#ffffff' : '#000000')
+                ? colors.surface
+                : colors.text
             }
           ]}>
-            Preference Search
+            Preference Search8
           </Text>
         </TouchableOpacity>
       </View>

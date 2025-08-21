@@ -5,7 +5,6 @@
 
 import { Text as DefaultText, View as DefaultView } from 'react-native';
 
-import Colors from '@/core/env/Colors';
 import { useTheme } from './ThemeContext';
 
 type ThemeProps = {
@@ -16,20 +15,21 @@ type ThemeProps = {
 export type TextProps = ThemeProps & DefaultText['props'];
 export type ViewProps = ThemeProps & DefaultView['props'];
 
-type ColorName = Exclude<keyof typeof Colors.light & keyof typeof Colors.dark, 'tabIcons'>;
+type ColorName = 'text' | 'background' | 'tint' | 'tabIconDefault' | 'tabIconSelected' | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | 'surface' | 'surfaceVariant' | 'border' | 'divider' | 'disabled' | 'placeholder' | 'interactiveIcon' | 'interactiveBorder' | 'inactiveIcon' | 'sidebarBorder' | 'activeTabBackground' | 'inactiveTabText' | 'activeTabText' | 'buttonBorder';
 
 export function useThemeColor(
   colorName: ColorName,
   props?: { light?: string; dark?: string }
 ): string {
-  const { isDark } = useTheme();
+  const { isDark, getColors } = useTheme();
+  const colors = getColors();
   const theme = isDark ? 'dark' : 'light';
   const colorFromProps = props?.[theme];
 
   if (colorFromProps) {
     return colorFromProps;
   } else {
-    return Colors[theme][colorName];
+    return colors[colorName];
   }
 }
 

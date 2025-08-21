@@ -1,14 +1,16 @@
-import Colors from '@/core/env/Colors';
 import { spacing } from '@/core/env/Spacing';
-import { useTheme } from '@/lib/theme/ThemeContext';
+import { ExternalLink } from '@/lib/components/ExternalLink';
+import { useThemeColors } from '@/lib/theme/ThemeContext';
 import { Text } from '@/lib/theme/Themed';
-import { SearchResult } from '@/lib/types/search';
+import { BareEvent } from '@/lib/types/search';
 import { Avatar, Icon } from '@rneui/themed';
+import { displayProfile } from '@welshman/util';
 import React from 'react';
+
 import { StyleSheet, View } from 'react-native';
 
 interface ProfileResultHeaderProps {
-  result: SearchResult;
+  result: BareEvent;
   localFollowerCount?: number;
 }
 
@@ -16,19 +18,13 @@ export const ProfileResultHeader: React.FC<ProfileResultHeaderProps> = ({
   result,
   localFollowerCount,
 }) => {
-  const { isDark } = useTheme();
-  const colorScheme = isDark ? 'dark' : 'light';
-  const colors = Colors[colorScheme];
-
+  const colors = useThemeColors();
   // Extract data from event
   const profile = result.event;
-  const title = profile.name || profile.display_name || 'Anonymous';
+  const title = displayProfile(profile, 'Loading...');
 
   // Determine subtitle: website takes priority over handle
-  const website = profile.website || profile.lud06 || profile.lud16;
-  const handle = profile.nip05;
-  const subtitle = website || handle || '';
-
+  const subtitle = profile.website || profile.nip05;
   const imageUrl = profile.picture;
 
   const renderAvatar = () => {
@@ -59,7 +55,7 @@ export const ProfileResultHeader: React.FC<ProfileResultHeaderProps> = ({
       <View style={styles.profileInfo}>
         <View style={styles.avatarSection}>
           {renderAvatar()}
-          {result.metadata.verified && (
+          {result.verified && (
             <View style={[styles.verifiedBadge, { backgroundColor: colors.success }]}>
               <Icon
                 name="checkmark-circle"
@@ -76,30 +72,27 @@ export const ProfileResultHeader: React.FC<ProfileResultHeaderProps> = ({
             <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
               {title}
             </Text>
-            {result.metadata.trustScore && result.metadata.trustScore > 0 && (
-              <View style={[styles.trustBadge, { backgroundColor: colors.info }]}>
-                <Text style={[styles.trustText, { color: colors.surface }]}>
-                  {result.metadata.trustScore}
-                </Text>
-              </View>
-            )}
           </View>
 
-          <Text style={[styles.handle, { color: colors.placeholder }]} numberOfLines={1}>
-            {subtitle}
-          </Text>
+          {subtitle && subtitle.trim() ? (
+            <ExternalLink href={subtitle} style={[styles.subtitle, { color: colors.placeholder }]} numberOfLines={1}>
+              {subtitle}
+            </ExternalLink>
+          ) : null}
 
           {/* Follower/Following stats */}
           <View style={styles.statsContainer}>
             <Text style={[styles.statText, { color: colors.placeholder }]}>
               <Text style={{ fontWeight: '600', color: colors.text }}>
-                {localFollowerCount || result.metadata.followerCount || 0}
-              </Text> followers
+                {localFollowerCount || result.followerCount || 0}
+              </Text>
+              {' followers'}
             </Text>
             <Text style={[styles.statText, { color: colors.placeholder }]}>
               <Text style={{ fontWeight: '600', color: colors.text }}>
-                {result.metadata.followingCount || 0}
-              </Text> following
+                {result.followingCount || 0}
+              </Text>
+              {' following'}
             </Text>
           </View>
         </View>
@@ -152,20 +145,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
   },
-  trustBadge: {
-    paddingHorizontal: spacing(1.5),
-    paddingVertical: spacing(0.5),
-    borderRadius: 8,
-  },
-  trustText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  handle: {
-    fontSize: 15,
-    marginBottom: spacing(1),
-    opacity: 0.7,
-  },
   statsContainer: {
     flexDirection: 'row',
     gap: spacing(3),
@@ -173,5 +152,9 @@ const styles = StyleSheet.create({
   statText: {
     fontSize: 13,
     opacity: 0.7,
+  },
+  subtitle: {
+    fontSize: 14,
+    opacity: 0.8,
   },
 });

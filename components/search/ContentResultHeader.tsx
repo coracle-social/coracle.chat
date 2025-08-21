@@ -1,16 +1,18 @@
-import Colors from '@/core/env/Colors';
 import { spacing } from '@/core/env/Spacing';
-import { useTheme } from '@/lib/theme/ThemeContext';
+import { useThemeColors } from '@/lib/theme/ThemeContext';
 import { Text } from '@/lib/theme/Themed';
-import { SearchResult } from '@/lib/types/search';
+import { BareEvent } from '@/lib/types/search';
 import { extractTitle } from '@/lib/utils/contentParser';
+import { formatTimestampRelative } from '@/lib/utils/formatNums';
+import { createConversationUrl } from '@/lib/utils/nip19Utils';
 import { Avatar, Icon } from '@rneui/themed';
+import { router } from 'expo-router';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ProfileMini } from './ProfileMini';
 
 interface ContentResultHeaderProps {
-  result: SearchResult;
+  result: BareEvent;
   localFollowerCount?: number;
   contentTitle?: string;
 }
@@ -20,25 +22,17 @@ export const ContentResultHeader: React.FC<ContentResultHeaderProps> = ({
   localFollowerCount,
   contentTitle,
 }) => {
-  const { isDark } = useTheme();
-  const colorScheme = isDark ? 'dark' : 'light';
-  const colors = Colors[colorScheme];
+  const colors = useThemeColors();
 
   // Extract data from event
   const event = result.event;
   const content = event.content || '';
-  const imageUrl = result.imageUrl;
+  const imageUrl = event.picture; // Use picture from event if available
 
-  const formatTimestamp = (timestamp: number) => {
-    const date = new Date(timestamp * 1000);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString();
+  const handleViewConversation = () => {
+    const conversationUrl = createConversationUrl(result.event.id, []);
+    //temporary fix for the type error, once it becomes a real route path we won't need any
+    router.push(conversationUrl as any);
   };
 
   const renderAvatar = () => {
@@ -57,7 +51,7 @@ export const ContentResultHeader: React.FC<ContentResultHeaderProps> = ({
       <Avatar
         size="medium"
         rounded
-        title={result.metadata.author?.charAt(0).toUpperCase() || 'A'}
+        title={result.authorPubkey?.charAt(0).toUpperCase() || 'A'}
         containerStyle={[styles.avatarContainer, { backgroundColor: colors.primary }]}
         titleStyle={{ color: colors.surface, fontWeight: '700' }}
       />
@@ -69,22 +63,22 @@ export const ContentResultHeader: React.FC<ContentResultHeaderProps> = ({
       {/* Author Info Row with Title */}
       <View style={styles.authorRow}>
         <View style={styles.authorInfo}>
-          {result.metadata.authorPubkey ? (
+          {result.authorPubkey ? (
             <ProfileMini
-              key={`header-profile-${result.metadata.authorPubkey}`}
-              pubkey={result.metadata.authorPubkey}
-              raw={result.metadata.authorPubkey}
-              relays={result.relays}
+              key={`header-profile-${result.authorPubkey}`}
+              pubkey={result.authorPubkey}
+              raw={result.authorPubkey}
+              relays={[]}
             />
           ) : (
             <>
               {renderAvatar()}
               <View style={styles.authorDetails}>
                 <Text style={[styles.authorName, { color: colors.text }]} numberOfLines={1}>
-                  {result.metadata.author || 'Anonymous'}
+                  {result.authorPubkey?.substring(0, 8) + '...' || 'Loading...'}
                 </Text>
                 <Text style={[styles.timestamp, { color: colors.placeholder }]}>
-                  {result.metadata.timestamp ? formatTimestamp(result.metadata.timestamp) : ''}
+                  {result.event.created_at ? formatTimestampRelative(result.event.created_at) : ''}
                 </Text>
               </View>
             </>
@@ -98,8 +92,22 @@ export const ContentResultHeader: React.FC<ContentResultHeaderProps> = ({
           </Text>
         </View>
 
+        {/* View Full Conversation Button */}
+        <TouchableOpacity
+          onPress={handleViewConversation}
+          style={styles.viewConversationButton}
+          activeOpacity={0.7}
+        >
+          <Icon
+            name="chatbubble-outline"
+            type="ionicon"
+            size={16}
+            color={colors.primary}
+          />
+        </TouchableOpacity>
+
         {/* Verification Icon */}
-        {result.metadata.verified && (
+        {result.verified && (
           <Icon
             name="checkmark-circle"
             type="ionicon"
@@ -155,8 +163,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     lineHeight: 20,
-    flexWrap: 'wrap',
-    flex: 1,
+    flexShrink: 1,
     minWidth: 0,
+  },
+  viewConversationButton: {
+    paddingHorizontal: spacing(1),
+    paddingVertical: spacing(0.5),
+    minHeight: 32,
+  },
+  viewConversationTitle: {
+    fontSize: 12,
+    fontWeight: '500',
   },
 });
