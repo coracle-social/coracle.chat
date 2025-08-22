@@ -2,7 +2,6 @@ import { router } from 'expo-router';
 
 export enum TabRoutes {
   DASHBOARD = 'dashboard',
-  EXPLORE = 'explore',
   SPACES = 'spaces',
   MESSAGES = 'messages',
   SEARCH = 'search',

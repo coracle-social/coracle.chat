@@ -1,6 +1,18 @@
+// SolarIcon.tsx
 import { useThemeColors } from '@/lib/theme/ThemeContext';
 import React from 'react';
 import { StyleProp, ViewStyle } from 'react-native';
+
+// Dynamically import all SVGs in the solar folder
+const req = require.context('../assets/icons/solar', false, /\.svg$/);
+
+const iconMap: Record<string, React.ComponentType<any>> = {};
+req.keys().forEach((fileName: string) => {
+  const cleanName = fileName
+    .replace('./', '')           // remove ./ prefix
+    .replace('.svg', '');        // remove extension
+  iconMap[cleanName] = req(fileName).default;
+});
 
 interface SolarIconProps {
   name: string;
@@ -21,22 +33,13 @@ export default function SolarIcon({
   ...props
 }: SolarIconProps) {
   const colors = useThemeColors();
-
-  // Use provided color or theme-aware default (black for light, white for dark)
   const iconColor = color || colors.text;
 
-  const Icon = getIconByName(name);
-
+  const Icon = iconMap[name];
   if (!Icon) {
-    console.warn(`Icon "${name}" not found.`);
+    console.warn(`Icon "${name}" not found in solar icons.`);
     return null;
   }
-
-  // Apply color through style to use currentColor in SVGs
-  const iconStyle = [
-    { color: iconColor }, // This sets the currentColor for the SVG
-    style
-  ];
 
   return (
     <Icon
@@ -45,38 +48,8 @@ export default function SolarIcon({
       stroke={iconColor}
       fill={fill}
       strokeWidth={strokeWidth}
-      style={iconStyle}
+      style={[{ color: iconColor }, style]}
       {...props}
     />
   );
 }
-
-// Icon importer with explicit imports
-function getIconByName(name: string): React.ComponentType<Record<string, unknown>> | null {
-  switch (name) {
-    case 'Home Smile':
-      return require('../assets/icons/solar/Home Smile.svg').default;
-    case 'compass':
-      return require('../assets/icons/solar/compass.svg').default;
-    case 'Settings Minimalistic':
-      return require('../assets/icons/solar/Settings Minimalistic.svg').default;
-    case 'Letter':
-      return require('../assets/icons/solar/Letter.svg').default;
-    case 'Widget Add':
-      return require('../assets/icons/solar/Widget Add.svg').default;
-    case 'Info Circle':
-      return require('../assets/icons/solar/Info Circle.svg').default;
-    case 'Settings':
-      return require('../assets/icons/solar/Settings.svg').default;
-    case 'Magnifier':
-      return require('../assets/icons/solar/Magnifer.svg').default;
-    case 'User Rounded':
-      return require('../assets/icons/solar/User Rounded.svg').default;
-    default:
-      console.warn(`Icon "${name}" not found.`);
-      return null;
-  }
-}
-
-// NOTE: SVGs now use currentColor for stroke, so color prop will work properly
-// The color prop is applied through the style to set currentColor

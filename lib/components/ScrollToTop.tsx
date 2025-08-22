@@ -1,6 +1,6 @@
-import { useTheme, useThemeColors } from '@/lib/theme/ThemeContext';
+import { useThemeColors } from '@/lib/theme/ThemeContext';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity } from 'react-native';
 
 interface ScrollToTopProps {
   visible: boolean;
@@ -21,6 +21,12 @@ export const ScrollToTop: React.FC<ScrollToTopProps> = ({
 
   if (!visible) return null;
 
+  // Mobile-specific positioning
+  const isMobile = Platform.OS !== 'web';
+  const mobileBottom = -25; // Lower position on mobile
+  const mobileRight = '50%'; // Center horizontally on mobile
+  const mobileTransform = isMobile ? [{ translateX: size / 2 }] : undefined; // Adjust for centering
+
   return (
     <TouchableOpacity
       style={[
@@ -29,15 +35,16 @@ export const ScrollToTop: React.FC<ScrollToTopProps> = ({
           width: size,
           height: size,
           borderRadius: size / 2,
-          bottom,
-          right,
+          bottom: isMobile ? mobileBottom : bottom,
+          right: isMobile ? mobileRight : right,
           backgroundColor: colors.primary,
+          transform: mobileTransform,
         }
       ]}
       onPress={onPress}
       activeOpacity={0.8}
     >
-      <Text style={[styles.scrollToTopIcon, { color: colors.surface }]}>↑</Text>
+      <Text style={[styles.scrollToTopIcon, { color: colors.surface }]}>⌃</Text>
     </TouchableOpacity>
   );
 };
@@ -54,6 +61,8 @@ const styles = StyleSheet.create({
   },
   scrollToTopIcon: {
     color: '#fff',
-    fontSize: 24,
+    fontSize: 26,
+    lineHeight: 24,
+    marginTop: -10, // Position at top edge of bubble
   },
 });

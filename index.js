@@ -1,5 +1,13 @@
 // AbortSignal polyfill for React Native
-import './lib/utils/abort-signal-polyfill';
+// import { registerRootComponent } from 'expo';
+// import ExpoRouterEntry from 'expo-router/entry';
+// import 'react-native-get-random-values';
+// import 'react-native-webcrypto';
+
+// console.log('[INDEX] Loading Expo Router entry');
+// registerRootComponent(ExpoRouterEntry);
+// console.log('[INDEX] Expo Router entry loaded');
+
 
 import 'expo-crypto';
 import 'expo-router/entry';

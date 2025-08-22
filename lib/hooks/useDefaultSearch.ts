@@ -5,6 +5,7 @@ import { searchContentWithReactions } from '@/lib/utils/contentSearch';
 import { isProfileLink, searchProfileByLink, searchProfilesWithWeighting } from '@/lib/utils/profileSearch';
 import { profileSearch } from '@welshman/app';
 import { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 
 export interface UseDefaultSearchReturn {
   // State
@@ -32,7 +33,9 @@ export const useDefaultSearch = (): UseDefaultSearchReturn => {
   const [contentEvents, setContentEvents] = useState<BareEvent[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [selectedFilters, setSelectedFilters] = useState<string[]>(['people']);
+  const [selectedFilters, setSelectedFilters] = useState<string[]>(
+    Platform.OS !== 'web' ? ['people', 'content'] : ['people']
+  );
   const [selectedSort, setSelectedSort] = useState('relevance');
   const [profileOffset, setProfileOffset] = useState(0);
   const [contentOffset, setContentOffset] = useState(0);

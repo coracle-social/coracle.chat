@@ -38,8 +38,8 @@ export default function ProfileSwitcher({}: ProfileSwitcherProps) {
     return 0;
   });
 
-  // Don't show FAB if no accounts
-  if (!allSessions || Object.keys(allSessions).length === 0) {
+  // Don't show FAB if no accounts or no current pubkey
+  if (!allSessions || Object.keys(allSessions).length === 0 || !currentPubkey) {
     return null;
   }
 
@@ -80,7 +80,7 @@ export default function ProfileSwitcher({}: ProfileSwitcherProps) {
               )}
 
             <ScrollView style={{ backgroundColor: 'transparent' }} showsVerticalScrollIndicator={false}>
-                {(hasMultipleAccounts && !showAllProfiles ? sessionEntries.slice(0, 1) : sessionEntries).map(([pubkey, session]) => (
+                {(hasMultipleAccounts && !showAllProfiles ? sessionEntries.slice(0, 1) : sessionEntries).filter(([pubkey]) => pubkey && pubkey.length > 0).map(([pubkey, session]) => (
                     <Card
                     key={pubkey}
                     style={[
@@ -93,7 +93,7 @@ export default function ProfileSwitcher({}: ProfileSwitcherProps) {
                     onPress={() => handleSwitchProfile(pubkey)}
                     >
                         <List.Item
-                        title={pubkey === currentPubkey && currentProfile?.name ? currentProfile.name : displayPubkey(pubkey)}
+                        title={pubkey === currentPubkey && currentProfile?.name ? currentProfile.name : (pubkey ? displayPubkey(pubkey) : 'Unknown Profile')}
                         description={`${session.method.toUpperCase()} •`}
                         left={props => (
                             pubkey === currentPubkey && currentProfile?.picture ? (

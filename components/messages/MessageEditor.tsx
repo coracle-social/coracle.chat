@@ -1,21 +1,21 @@
-import React, { useState, forwardRef, useImperativeHandle, useEffect } from 'react';
-import { StyleSheet, View, Pressable } from 'react-native';
 import { Text, useThemeColor } from '@/lib/theme/Themed';
-import { useTheme } from '@/lib/theme/ThemeContext';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import { EditorContent, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import React, { forwardRef, useEffect, useImperativeHandle } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import './tiptap-styles.css';
 
 interface MessageEditorProps {
   onSendMessage: (content: string) => void;
+  disabled?: boolean;
 }
 
 export interface MessageEditorRef {
   dismissKeyboard: () => void;
 }
 
-const MessageEditor = forwardRef<MessageEditorRef, MessageEditorProps>(({ onSendMessage }, ref) => {
+const MessageEditor = forwardRef<MessageEditorRef, MessageEditorProps>(({ onSendMessage, disabled = false }, ref) => {
 
   // Use the theme system properly
   const backgroundColor = useThemeColor('surface');
@@ -39,6 +39,7 @@ const MessageEditor = forwardRef<MessageEditorRef, MessageEditorProps>(({ onSend
     onUpdate: ({ editor }) => {
       // Handle content changes if needed
     },
+    editable: !disabled,
   });
 
   // Update CSS variables when theme changes
@@ -61,7 +62,7 @@ const MessageEditor = forwardRef<MessageEditorRef, MessageEditorProps>(({ onSend
   }));
 
   const handleSendMessage = () => {
-    if (editor && editor.getText().trim()) {
+    if (editor && editor.getText().trim() && !disabled) {
       const content = editor.getHTML();
       onSendMessage(content);
       editor.commands.clearContent();
@@ -69,7 +70,7 @@ const MessageEditor = forwardRef<MessageEditorRef, MessageEditorProps>(({ onSend
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !disabled) {
       e.preventDefault();
       handleSendMessage();
     }
@@ -84,8 +85,20 @@ const MessageEditor = forwardRef<MessageEditorRef, MessageEditorProps>(({ onSend
           onKeyDown={handleKeyPress}
         />
       </View>
-      <Pressable style={[styles.sendButton, { backgroundColor: primaryColor }]} onPress={handleSendMessage}>
-        <Text style={styles.sendButtonText}>Send</Text>
+      <Pressable
+        style={[
+          styles.sendButton,
+          {
+            backgroundColor: disabled ? placeholderColor : primaryColor,
+            opacity: disabled ? 0.5 : 1
+          }
+        ]}
+        onPress={handleSendMessage}
+        disabled={disabled}
+      >
+        <Text style={styles.sendButtonText}>
+          {disabled ? 'Publishing...' : 'Send'}
+        </Text>
       </Pressable>
     </View>
   );
