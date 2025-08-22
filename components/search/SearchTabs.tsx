@@ -1,6 +1,6 @@
 import { useThemeColors } from '@/lib/theme/ThemeContext';
-import React, { useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React from 'react';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface FilterOption {
   id: string;
@@ -24,7 +24,6 @@ export const SearchTabs: React.FC<SearchTabsProps> = ({
   isSortDisabled,
 }) => {
   const colors = useThemeColors();
-  const [showAllOptions, setShowAllOptions] = useState(false);
 
   const filterOptions: FilterOption[] = [
     { id: 'people', label: 'People', icon: '👤' },
@@ -99,41 +98,8 @@ export const SearchTabs: React.FC<SearchTabsProps> = ({
       </View>
     );
   } else {
-    // Mobile: Horizontal scroll with "Add" button
-    const visibleOptions = showAllOptions ? sortedOptions : sortedOptions.slice(0, 4);
-    const hasMoreOptions = sortedOptions.length > 4;
-
-    return (
-      <View style={styles.filterContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterScrollContent}
-        >
-          {visibleOptions.map(renderFilterBubble)}
-          {hasMoreOptions && !showAllOptions && (
-            <TouchableOpacity
-              style={[
-                styles.addButton,
-                {
-                  backgroundColor: colors.surfaceVariant,
-                  borderColor: colors.border,
-                }
-              ]}
-              onPress={() => setShowAllOptions(true)}
-              activeOpacity={0.7}
-            >
-              <Text style={[
-                styles.addButtonText,
-                { color: colors.text }
-              ]}>
-                + Add
-              </Text>
-            </TouchableOpacity>
-          )}
-        </ScrollView>
-      </View>
-    );
+    // Mobile: Now handled by SearchOptionsFAB, return null
+    return null;
   }
 };
 
@@ -147,9 +113,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 6,
     justifyContent: 'center',
-  },
-  filterScrollContent: {
-    paddingRight: 12,
   },
   filterBubble: {
     flexDirection: 'row',
@@ -179,24 +142,9 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
   },
   removeButtonText: {
     fontSize: 8,
     fontWeight: 'bold',
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginRight: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    minWidth: 60,
-  },
-  addButtonText: {
-    fontSize: 12,
-    fontWeight: '500',
   },
 });

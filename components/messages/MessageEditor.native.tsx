@@ -1,6 +1,6 @@
-import { useRef, forwardRef, useImperativeHandle } from 'react';
-import { StyleSheet, Pressable } from 'react-native';
 import { Text, useThemeColor } from '@/lib/theme/Themed';
+import { forwardRef, useImperativeHandle, useRef } from 'react';
+import { Pressable, StyleSheet } from 'react-native';
 
 const RichEditorModule = require('react-native-pell-rich-editor');
 const RichEditor = RichEditorModule.RichEditor;
@@ -9,13 +9,14 @@ const actions = RichEditorModule.actions;
 
 interface MessageEditorProps {
   onSendMessage: (content: string) => void;
+  disabled?: boolean;
 }
 
 export interface MessageEditorRef {
   dismissKeyboard: () => void;
 }
 
-const MessageEditor = forwardRef<MessageEditorRef, MessageEditorProps>(({ onSendMessage }, ref) => {
+const MessageEditor = forwardRef<MessageEditorRef, MessageEditorProps>(({ onSendMessage, disabled = false }, ref) => {
   const richText = useRef<{
     blurContentEditor?: () => void;
     getContentHtml?: () => Promise<string>;
@@ -39,6 +40,8 @@ const MessageEditor = forwardRef<MessageEditorRef, MessageEditorProps>(({ onSend
   }));
 
   const handleSendMessage = () => {
+    if (disabled) return;
+
     richText.current?.getContentHtml?.().then((content: string) => {
       if (content && content.trim() !== '<p><br></p>') {
         onSendMessage(content);
@@ -48,6 +51,8 @@ const MessageEditor = forwardRef<MessageEditorRef, MessageEditorProps>(({ onSend
   };
 
   const handleEditorChange = (text: string) => {
+    if (disabled) return;
+
     // Check if the text contains a newline (Enter key was pressed)
     if (text.includes('\n')) {
       // Remove the newline and send the message
@@ -67,7 +72,7 @@ const MessageEditor = forwardRef<MessageEditorRef, MessageEditorProps>(({ onSend
         placeholder="Type your message..."
         onChange={handleEditorChange}
         maxHeight={200}
-        scrollEnabled={true}
+        scrollEnabled={!disabled}
         editorStyle={{
           backgroundColor: backgroundColor,
           color: textColor,
@@ -75,6 +80,7 @@ const MessageEditor = forwardRef<MessageEditorRef, MessageEditorProps>(({ onSend
           lineHeight: 1.5,
         }}
         placeholderColor={placeholderColor}
+        disabled={disabled}
       />
       <RichToolbar
         editor={richText}
@@ -85,8 +91,20 @@ const MessageEditor = forwardRef<MessageEditorRef, MessageEditorProps>(({ onSend
         ]}
         style={[styles.toolbar, { backgroundColor: toolbarBackground, borderTopColor: borderColor }]}
       />
-      <Pressable style={[styles.sendButton, { backgroundColor: primaryColor }]} onPress={handleSendMessage}>
-        <Text style={styles.sendButtonText}>Send</Text>
+      <Pressable
+        style={[
+          styles.sendButton,
+          {
+            backgroundColor: disabled ? placeholderColor : primaryColor,
+            opacity: disabled ? 0.5 : 1
+          }
+        ]}
+        onPress={handleSendMessage}
+        disabled={disabled}
+      >
+        <Text style={styles.sendButtonText}>
+          {disabled ? 'Publishing...' : 'Send'}
+        </Text>
       </Pressable>
     </>
   );

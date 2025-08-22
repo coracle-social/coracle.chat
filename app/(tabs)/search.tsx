@@ -5,6 +5,7 @@ import { SearchSidebarToggle } from '@/components/search/SearchSidebarToggle';
 import { SearchEngineType, SearchToggle } from '@/components/search/SearchToggle';
 import { Layout } from '@/core/env/Layout';
 import { ScrollToTop } from '@/lib/components/ScrollToTop';
+import SearchOptionsFAB from '@/lib/components/SearchOptionsFAB';
 import { useThemeColors } from '@/lib/theme/ThemeContext';
 import { useRef, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
@@ -96,6 +97,9 @@ export default function SearchScreen() {
         visible={showScrollToTop}
         onPress={scrollToTop}
       />
+
+      {/* Mobile-only Search Options FAB */}
+      {Platform.OS !== 'web' && <SearchOptionsFAB />}
     </View>
   </View>
 );

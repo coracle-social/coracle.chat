@@ -28,6 +28,12 @@ export const Typography = {
   label: { fontSize: 14, fontWeight: '500' as const },
   helper: { fontSize: 12, fontStyle: 'italic' as const },
 
+  // Platform-adaptive header style
+  header: {
+    fontSize: 20, // Mobile header size
+    fontWeight: '400' as const,
+  },
+
   // Text alignment
   center: { textAlign: 'center' as const },
   left: { textAlign: 'left' as const },

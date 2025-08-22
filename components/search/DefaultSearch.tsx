@@ -1,10 +1,12 @@
 import { SearchInput } from '@/components/search/SearchInput';
 import { SearchResultsList } from '@/components/search/SearchResultsList';
 import { SearchTabs } from '@/components/search/SearchTabs';
+import SearchTermHistory from '@/lib/components/SearchTermHistory';
 import { useDefaultSearch } from '@/lib/hooks/useDefaultSearch';
 import { useSearchResults } from '@/lib/hooks/useSearchResults';
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+
 
 interface DefaultSearchProps {
   onScroll?: (event: any) => void;
@@ -28,6 +30,26 @@ export const DefaultSearch: React.FC<DefaultSearchProps> = ({
     setSelectedSort,
     loadMoreResults,
   } = useDefaultSearch();
+
+  // Track search history (up to 6 recent terms)
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+
+  // Update search history only when search is completed (keyboard dismissed)
+  const handleSearchBlur = () => {
+    if (searchTerm && searchTerm.trim()) {
+      const trimmedTerm = searchTerm.trim();
+
+      // Don't add if it's already the most recent term
+      if (searchHistory[0] !== trimmedTerm) {
+        setSearchHistory(prev => {
+          // Remove the term if it already exists (to avoid duplicates)
+          const filtered = prev.filter(term => term !== trimmedTerm);
+          // Add new term to the beginning and limit to 6 items
+          return [trimmedTerm, ...filtered].slice(0, 6);
+        });
+      }
+    }
+  };
 
   const { searchResults } = useSearchResults(
     profileEvents,
@@ -80,7 +102,10 @@ export const DefaultSearch: React.FC<DefaultSearchProps> = ({
         placeholder="Search people and content..."
         isSearching={isSearching}
         onClear={() => setSearchTerm('')}
+        onBlur={handleSearchBlur}
       />
+
+      <SearchTermHistory onTermSelect={setSearchTerm} previousSearchTerm={searchHistory} />
 
       <SearchTabs
         selectedFilters={selectedFilters}

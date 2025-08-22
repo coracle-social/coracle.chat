@@ -14,7 +14,6 @@ import { Drawer } from 'react-native-paper';
 
 const getTabIcons = (colors: any) => ({
   [TabRoutes.DASHBOARD]: colors.tabIcons.dashboard,
-  [TabRoutes.EXPLORE]: colors.tabIcons.explore,
   [TabRoutes.SPACES]: colors.tabIcons.spaces,
   [TabRoutes.MESSAGES]: colors.tabIcons.messages,
   [TabRoutes.SEARCH]: colors.tabIcons.search,
@@ -191,17 +190,23 @@ export default function TabLayout() {
   const tabHistory = useRef<TabRoutes[]>([]);
   const isNavigatingBack = useRef(false);
 
-    const getCurrentTab = (): TabRoutes => {
+      const getCurrentTab = (): TabRoutes => {
     const currentSegment = last(segments);
 
-    // Handle nested settings routes - if we're in settings sub-routes, stay on settings tab
-    if (segments.length > 2 && segments[1] === 'settings') {
-      return TabRoutes.SETTINGS;
+    // Debug logging to see what segments we're getting
+    console.log('🔍 Tab Layout Segments:', segments);
+    console.log('🔍 Current Segment:', currentSegment);
+
+    // Check if any segment matches a tab route - this handles nested routes automatically
+    for (const segment of segments) {
+      if (Object.values(TabRoutes).includes(segment as TabRoutes)) {
+        console.log('🔍 Detected tab route in segments:', segment);
+        return segment as TabRoutes;
+      }
     }
 
-    if (Object.values(TabRoutes).includes(currentSegment as TabRoutes)) {
-      return currentSegment as TabRoutes;
-    }
+    // If no tab route found in segments, fall back to dashboard
+    console.log('🔍 No tab route found in segments, falling back to DASHBOARD tab');
     return TabRoutes.DASHBOARD;
   };
 

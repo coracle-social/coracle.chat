@@ -30,8 +30,6 @@ export interface RoomMessage {
 export const getRoomMessageCount = async (roomId: string): Promise<number> => {
     try {
       const relays = getRelayUrls({ preferSearch: false, limit: 12 });
-    console.log('Loading messages for room:', roomId);
-      // Load all kind:42 messages from relays (filtered by roomId)
       await load({
         filters: [
           { kinds: [42], '#h': [roomId] },
@@ -40,7 +38,6 @@ export const getRoomMessageCount = async (roomId: string): Promise<number> => {
         relays,
       });
 
-      // Query local repository for both types of tagged messages
       const hTagMessages = repository.query([{ kinds: [42], '#h': [roomId] }]);
       const rTagMessages = repository.query([{ kinds: [42], '#r': [roomId] }]);
 
@@ -51,7 +48,6 @@ export const getRoomMessageCount = async (roomId: string): Promise<number> => {
       });
 
       const uniqueMessages = Array.from(allMessagesMap.values());
-      console.log(`[ROOM: ${roomId}] Found ${uniqueMessages.length} messages`);
 
       return uniqueMessages.length;
     } catch (error) {
@@ -61,20 +57,11 @@ export const getRoomMessageCount = async (roomId: string): Promise<number> => {
   };
 
 export const getRooms = async (limit: number = 1000): Promise<Room[]> => {
-  console.log('[MESSAGING] getRooms called with limit:', limit);
-//   console.log('[MESSAGING] Stack trace:', new Error().stack);
-
   try {
-    console.log('[MESSAGING] About to call load() for rooms...');
-    const startTime = Date.now();
-
     await load({
       filters: [{kinds: [40]}],
       relays: getRelayUrls({ preferSearch: false, limit: 12 }),
     });
-
-    const loadTime = Date.now() - startTime;
-    console.log('[MESSAGING] load() completed in', loadTime, 'ms');
 
     // Query the repository for room events
     const roomEvents = repository.query([{
@@ -82,7 +69,6 @@ export const getRooms = async (limit: number = 1000): Promise<Room[]> => {
       limit: limit
     }]);
 
-    console.log('roomEvents', roomEvents.length);
     const rooms = roomEvents
       .filter(event => {
         // Only include events that have a #d tag
@@ -154,9 +140,6 @@ export const createChat = async (recipientPubkey: string) => {
     })
   }
 
-  // Usage
-//   const chat = deriveChat(chatId)
-//   const messages = loadMessages(chatId)
   export const makeChatId = (pubkeys: string[]): string => {
     if (pubkeys.length !== 2) {
       throw new Error("Chat ID requires exactly 2 pubkeys")

@@ -19,3 +19,21 @@ export const formatTimestampRelative = (timestamp: number) => {
   if (diffDays < 7) return `${diffDays}d ago`;
   return date.toLocaleDateString();
 };
+
+/**
+ * Format timestamp for message display (Discord-style)
+ * Shows time for recent messages, day for older ones
+ */
+export const formatMessageTime = (timestamp: number) => {
+  const date = new Date(timestamp * 1000);
+  const now = new Date();
+  const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+  if (diffInHours < 24) {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } else if (diffInHours < 168) { // 7 days
+    return date.toLocaleDateString([], { weekday: 'short' });
+  } else {
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  }
+};

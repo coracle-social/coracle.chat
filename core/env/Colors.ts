@@ -26,10 +26,9 @@ const defaultPalette = {
     // Interactive button colors
     interactiveIcon: '#0e1d47',
     interactiveBorder: '#05174d',
-    // Tab iconsxf
+    // Tab icons
     tabIcons: {
       dashboard: 'Home Smile',
-      explore: 'compass',
       spaces: 'Settings Minimalistic',
       messages: 'Letter',
       search: 'Magnifier',
@@ -71,7 +70,6 @@ const defaultPalette = {
     // Tab icons
     tabIcons: {
       dashboard: 'Home Smile',
-      explore: 'compass',
       spaces: 'Settings Minimalistic',
       messages: 'Letter',
       search: 'Magnifier',

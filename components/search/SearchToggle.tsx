@@ -2,7 +2,7 @@ import { spacing } from '@/core/env/Spacing';
 import { useThemeColors } from '@/lib/theme/ThemeContext';
 import { Text } from '@/lib/theme/Themed';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export type SearchEngineType = 'default' | 'preference';
 
@@ -16,6 +16,11 @@ export const SearchToggle: React.FC<SearchToggleProps> = ({
   onEngineChange,
 }) => {
   const colors = useThemeColors();
+
+  // Hide on mobile
+  if (Platform.OS !== 'web') {
+    return null;
+  }
 
   return (
     <View style={styles.container}>
